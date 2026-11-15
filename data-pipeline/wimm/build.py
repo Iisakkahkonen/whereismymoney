@@ -9,6 +9,7 @@ or filled in: items with no tracing source get a traced amount of zero.
 
 import argparse
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,6 +52,24 @@ LINKS = [
         kela.OPINTOTUKI_PAGE, "opintotuki opintoraha asumislisä student financial aid study grant Kela",
     ),
 ]
+
+
+def reconcile(label: str, kela_eur: float, treasury_eur: float) -> float:
+    """Signed difference (Kela - Treasury) / Treasury, or stop the build.
+
+    Both linked items are benefits that are paid out, so the Treasury actual must be a finite
+    positive number. A zero, negative or missing actual is a source change this guard exists to
+    catch; dividing by it would hide the disagreement (a signed denominator can even make a
+    200 percent gap look negative and pass)."""
+    if not (math.isfinite(treasury_eur) and treasury_eur > 0 and math.isfinite(kela_eur)):
+        raise AssertionError(f"{label}: cannot reconcile Kela {kela_eur} with Treasury actual {treasury_eur}; expected a positive Treasury actual")
+    diff = (kela_eur - treasury_eur) / treasury_eur
+    if abs(diff) > RECONCILIATION_TOLERANCE:
+        raise AssertionError(
+            f"{label}: Kela {kela_eur:,.0f} vs Treasury {treasury_eur:,.0f} differ by {abs(diff):.1%}, "
+            f"more than the accepted {RECONCILIATION_TOLERANCE:.0%}"
+        )
+    return diff
 
 
 def check_budget_balances(items: list, years: list[int]) -> None:
@@ -126,14 +145,9 @@ def build(cache: Path, out: Path, years: list[int], kela_mode: str = "snapshot",
             a = actual.get((y, l.momentti))
             if a is None:
                 raise AssertionError(f"budget item {l.momentti} missing in {y}")
-            gap = abs(k.total_cents / 100 - a) / a
+            diff = reconcile(f"{l.benefit} {y}", k.total_cents / 100, a)
             reconciliation.append({"year": y, "benefit": l.benefit, "treasury_eur": a, "kela_eur": k.total_cents / 100,
-                                   "difference": (k.total_cents / 100 - a) / a})
-            if gap > RECONCILIATION_TOLERANCE:
-                raise AssertionError(
-                    f"{l.benefit} {y}: Kela {k.total_cents / 100:,.0f} vs Treasury {a:,.0f} differ by {gap:.1%}, "
-                    f"more than the accepted {RECONCILIATION_TOLERANCE:.0%}"
-                )
+                                   "difference": diff})
             traced[(y, l.momentti)] = k.total_cents / 100
 
     cov = {(it.year, it.momentti): compute_coverage(it.actual_eur, traced.get((it.year, it.momentti), 0.0)) for it in items}

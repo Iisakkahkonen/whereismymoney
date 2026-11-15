@@ -58,6 +58,20 @@ def test_source_above_actual_is_capped_flagged_and_still_reported():
     assert c.note == "traced_exceeds_actual"
 
 
+def test_negative_source_figure_is_kept_with_its_sign_and_traces_nothing():
+    c = coverage.compute_coverage(100.0, -5.0)
+    assert c.reported_eur == -5.0  # not clamped to zero
+    assert (c.traced_eur, c.traced_share) == (0.0, 0.0)
+    assert c.untraced_eur == 100.0
+    assert c.note == "source_negative"
+
+
+@pytest.mark.parametrize("actual,reported", [(float("nan"), 1.0), (1.0, float("inf")), (float("inf"), 1.0)])
+def test_coverage_rejects_amounts_that_are_not_finite(actual, reported):
+    with pytest.raises(ValueError):
+        coverage.compute_coverage(actual, reported)
+
+
 @pytest.mark.parametrize("actual", [0.0, -5.0])
 def test_non_positive_actual_traces_nothing(actual):
     c = coverage.compute_coverage(actual, 100.0)
@@ -74,3 +88,26 @@ def test_snapshot_mode_never_downloads_and_names_the_missing_year(tmp_path):
     # Cache dir is empty and unreachable on purpose: snapshot mode must fail from the file alone.
     with pytest.raises(AssertionError, match="--kela download"):
         b.kela_inputs("snapshot", tmp_path / "no-cache", [2025], snap)
+
+
+def test_reconcile_returns_the_signed_difference_inside_the_limit():
+    assert build.reconcile("x", 104.0, 100.0) == pytest.approx(0.04)
+    assert build.reconcile("x", 96.0, 100.0) == pytest.approx(-0.04)
+
+
+@pytest.mark.parametrize("kela", [105.1, 94.9])
+def test_reconcile_stops_just_beyond_the_limit(kela):
+    with pytest.raises(AssertionError, match="differ by"):
+        build.reconcile("x", kela, 100.0)
+
+
+@pytest.mark.parametrize("actual", [-100.0, 0.0, float("nan"), float("inf")])
+def test_reconcile_refuses_a_treasury_actual_that_is_not_finite_and_positive(actual):
+    # With a signed denominator, actual=-100 and Kela=100 gave a "gap" of -2, which passed.
+    with pytest.raises(AssertionError, match="positive Treasury actual"):
+        build.reconcile("x", 100.0, actual)
+
+
+def test_reconcile_refuses_a_kela_figure_that_is_not_finite():
+    with pytest.raises(AssertionError):
+        build.reconcile("x", float("nan"), 100.0)
