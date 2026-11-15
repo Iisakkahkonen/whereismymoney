@@ -125,8 +125,9 @@ def test_opintotuki_stops_on_a_duplicate_yearly_row(tmp_path):
 # --- committed snapshot (CI cannot download the raw files) -------------------
 
 def _entry(**over):
-    e = {"benefit": "asumistuki", "year": 2025, "source_url": "https://example.test/x.csv", "resource_id": "r",
-         "sha256": "0" * 64, "bytes": 1, "retrieved_at": "2026-11-15", "total_cents": 300,
+    rid = kela.ASUMISTUKI_RESOURCES[2025]
+    e = {"benefit": "asumistuki", "year": 2025, "source_url": kela.url(kela.ASUMISTUKI_DATASET, rid, 2025), "resource_id": rid,
+         "sha256": "ab" * 32, "bytes": 1, "retrieved_at": "2026-11-15", "total_cents": 300,
          "unknown_municipality_cents": 0, "parts": {"elamantilanne": {"a": 100, "b": 200}}, "checks": ["ok"]}
     e.update(over)
     return e
@@ -140,12 +141,12 @@ def _write(tmp_path, entries, schema=kela.SNAPSHOT_SCHEMA):
 
 
 def test_snapshot_round_trips(tmp_path):
-    k = kela.KelaYear(2025, "asumistuki", 300, {"elamantilanne": {"a": 100, "b": 200}}, -5, ["ok"])
-    prov = {"source_url": "u", "resource_id": "r", "sha256": "ab", "bytes": 3, "retrieved_at": "2026-11-15"}
+    e = _entry()
+    k = kela.KelaYear(2025, "asumistuki", 300, e["parts"], 0, ["ok"])
+    prov = {f: e[f] for f in kela.PROVENANCE_FIELDS}
     p = tmp_path / "s" / "kela.json"
     kela.save_snapshot({("asumistuki", 2025): (k, prov)}, p)
-    back = kela.load_snapshot(p)[("asumistuki", 2025)]
-    assert back == (k, prov)
+    assert kela.load_snapshot(p)[("asumistuki", 2025)] == (k, prov)
 
 
 def test_snapshot_stops_when_parts_do_not_add_up(tmp_path):
@@ -161,6 +162,61 @@ def test_snapshot_stops_on_two_entries_for_one_year(tmp_path):
 def test_snapshot_stops_on_unknown_schema(tmp_path):
     with pytest.raises(ValueError):
         kela.load_snapshot(_write(tmp_path, [_entry()], schema=99))
+
+
+@pytest.mark.parametrize("over", [
+    {"parts": {}},  # every partition check used to be skipped for an empty parts map
+    {"parts": {"elamantilanne": {}}},
+    {"parts": {"elamantilanne": {"a": 300}, "extra": {"x": 300}}},  # unsupported breakdown
+    {"parts": {"elamantilanne": {"a": 150.0, "b": 150.0}}},  # not integer cents
+    {"total_cents": 0, "parts": {"elamantilanne": {"a": 0}}},
+    {"total_cents": 300.0},
+    {"unknown_municipality_cents": "0"},
+    {"checks": []},
+    {"benefit": "unknown_benefit"},
+    {"year": 1999},
+    {"sha256": "xyz"},
+    {"bytes": 0},
+    {"retrieved_at": "yesterday"},
+    {"resource_id": "some-other-resource"},
+    {"source_url": "https://example.test/x.csv"},
+])
+def test_snapshot_rejects_a_malformed_entry(tmp_path, over):
+    with pytest.raises(ValueError):
+        kela.load_snapshot(_write(tmp_path, [_entry(**over)]))
+
+
+def test_snapshot_rejects_a_missing_provenance_field(tmp_path):
+    e = _entry()
+    del e["sha256"]
+    with pytest.raises(ValueError, match="provenance missing"):
+        kela.load_snapshot(_write(tmp_path, [e]))
+
+
+def test_student_aid_snapshot_needs_both_breakdowns(tmp_path):
+    rid = kela.OPINTOTUKI_RESOURCES[2025]
+    base = {"benefit": "opintoraha_ja_asumislisa", "year": 2025, "resource_id": rid,
+            "source_url": kela.url(kela.OPINTOTUKI_DATASET, rid, 2025)}
+    both = {"etuus": {"a": 100, "b": 200}, "oppilaitosaste": {"x": 300}}
+    kela.load_snapshot(_write(tmp_path, [_entry(**base, parts=both)]))  # valid
+    for drop in both:
+        parts = {d: c for d, c in both.items() if d != drop}
+        with pytest.raises(ValueError, match="parts must be exactly"):
+            kela.load_snapshot(_write(tmp_path, [_entry(**base, parts=parts)]))
+
+
+def test_removing_any_breakdown_from_the_committed_snapshot_fails_the_loader(tmp_path):
+    # Mutate the committed file itself: removing any one required breakdown must fail the loader.
+    import json
+    data = json.loads(kela.SNAPSHOT.read_text(encoding="utf-8"))
+    for i, e in enumerate(data["entries"]):
+        for dim in e["parts"]:
+            broken = json.loads(json.dumps(data))
+            del broken["entries"][i]["parts"][dim]
+            p = tmp_path / f"broken_{i}_{dim}.json"
+            p.write_text(json.dumps(broken), encoding="utf-8")
+            with pytest.raises(ValueError, match="parts must be exactly"):
+                kela.load_snapshot(p)
 
 
 def test_committed_snapshot_is_valid_and_covers_every_year():

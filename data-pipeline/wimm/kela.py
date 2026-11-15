@@ -11,6 +11,7 @@ Money is summed in integer cents to keep the cross-checks exact.
 import csv
 import hashlib
 import json
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -232,20 +233,67 @@ def save_snapshot(entries: dict[tuple[str, int], tuple[KelaYear, dict]], path: P
                     encoding="utf-8")
 
 
+# The breakdowns each benefit must carry. A snapshot that lost one (or all) of them would still
+# reconcile on the headline total, so the loader insists on the exact set.
+REQUIRED_PARTS = {
+    "asumistuki": {"elamantilanne"},
+    "opintoraha_ja_asumislisa": {"etuus", "oppilaitosaste"},
+}
+PROVENANCE_FIELDS = ("source_url", "resource_id", "sha256", "bytes", "retrieved_at")
+
+
+def _is_int(x) -> bool:
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def _validate_entry(name: str, e: dict) -> None:
+    """Shape checks on one snapshot entry. Structural problems raise ValueError."""
+    key = (e.get("benefit"), e.get("year"))
+    if key[0] not in SOURCES or key[1] not in SOURCES[key[0]][1]:
+        raise ValueError(f"{name}: entry for unknown benefit/year {key}")
+    for field_name in ("total_cents", "unknown_municipality_cents"):
+        if not _is_int(e.get(field_name)):
+            raise ValueError(f"{name} {key}: {field_name} must be an integer number of cents")
+    if e["total_cents"] <= 0:
+        raise ValueError(f"{name} {key}: total_cents must be positive")
+    parts = e.get("parts")
+    if not isinstance(parts, dict) or set(parts) != REQUIRED_PARTS[key[0]]:
+        found = sorted(parts) if isinstance(parts, dict) else parts
+        raise ValueError(f"{name} {key}: parts must be exactly {sorted(REQUIRED_PARTS[key[0]])}, found {found}")
+    for dim, cats in parts.items():
+        if not isinstance(cats, dict) or not cats or not all(_is_int(v) for v in cats.values()):
+            raise ValueError(f"{name} {key}: breakdown {dim!r} must be a non-empty map of category to integer cents")
+    if not isinstance(e.get("checks"), list) or not e["checks"]:
+        raise ValueError(f"{name} {key}: the list of passed checks is missing")
+    missing = [f for f in PROVENANCE_FIELDS if f not in e]
+    if missing:
+        raise ValueError(f"{name} {key}: provenance missing {missing}")
+    dataset, resources, _prefix, _agg = SOURCES[key[0]]
+    if e["resource_id"] != resources[key[1]] or e["source_url"] != url(dataset, resources[key[1]], key[1]):
+        raise ValueError(f"{name} {key}: provenance does not match the resource this pipeline reads")
+    if not (isinstance(e["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", e["sha256"])):
+        raise ValueError(f"{name} {key}: sha256 is not a 64-character hex digest")
+    if not (_is_int(e["bytes"]) and e["bytes"] > 0):
+        raise ValueError(f"{name} {key}: bytes must be a positive integer")
+    if not (isinstance(e["retrieved_at"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", e["retrieved_at"])):
+        raise ValueError(f"{name} {key}: retrieved_at must be an ISO date")
+
+
 def load_snapshot(path: Path = SNAPSHOT) -> dict[tuple[str, int], tuple[KelaYear, dict]]:
-    """Read the committed aggregates. Every part dimension must still add up to the total,
-    so a hand-edited or damaged file fails here instead of reaching the site."""
+    """Read the committed aggregates. The shape is validated (required breakdowns present,
+    integer cents, provenance matching the pinned resource), and every breakdown must add up
+    to the total, so a hand-edited or damaged file fails here instead of reaching the site."""
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema") != SNAPSHOT_SCHEMA:
         raise ValueError(f"{path.name}: schema {data.get('schema')}, expected {SNAPSHOT_SCHEMA}")
     out: dict[tuple[str, int], tuple[KelaYear, dict]] = {}
     for e in data["entries"]:
+        _validate_entry(path.name, e)
         key = (e["benefit"], e["year"])
         if key in out:
             raise AmbiguousSeries(f"{path.name}: two snapshot entries for {key}")
         k = KelaYear(e["year"], e["benefit"], e["total_cents"], e["parts"], e["unknown_municipality_cents"], e["checks"])
         for dim, cats in k.parts.items():
             _require_equal(f"snapshot {key} {dim} parts vs total", sum(cats.values()), k.total_cents)
-        prov = {x: e[x] for x in ("source_url", "resource_id", "sha256", "bytes", "retrieved_at")}
-        out[key] = (k, prov)
+        out[key] = (k, {x: e[x] for x in PROVENANCE_FIELDS})
     return out
