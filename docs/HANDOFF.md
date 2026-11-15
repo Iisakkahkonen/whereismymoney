@@ -6,6 +6,8 @@ Written 2026-11-15, from the web chat. Read this first, then `PLAN.md` (the full
 Iisak Kähkönen is building `whereismymoney`, one of the projects in his Vibecoding Portfolio: a public, open source web app for browsing where Finland's public money comes from and where it goes, as deep as the public data allows (benefits, grants to organisations, payments to companies), with real search and filters. Every portfolio project is independent and has its own repo. It is meant to show employers how he works with AI, so how it was built and what he decided are part of the deliverable. He sets the direction and makes the decisions; Claude does the mechanical work.
 
 ## State of things
+**Update 2026-11-15 (Claude Code session): Phase 0 is done and waiting for the owner's review.** The result is `docs/data-inventory.md`, with fixtures in `data-pipeline/samples/` and a small re-check script in `data-pipeline/recon/`. Read the inventory before starting Phase 1. Three decisions need the owner (at the end of the inventory): how to get grants data, whether to include municipal invoices, and a tolerance for the Treasury-to-Kela reconciliation. The older notes below describe the state before Phase 0.
+
 - Repo: https://github.com/iisakkahkonen/whereismymoney, public, Apache 2.0, Python .gitignore. This commit adds the README stub, `CLAUDE.md`, and these docs.
 - Nothing is built. No code, no data, no CI.
 - The plan and decisions are in `PLAN.md`. The data research was done in a web chat session that could not reach the sites directly, so no endpoint or file has been tested. Everything marked "verify" in the plan is unchecked.

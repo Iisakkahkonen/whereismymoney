@@ -2,6 +2,17 @@
 
 Written 2026-11-15, updated the same day with the owner's decisions. A separate project from the Finland vs. EU dashboard. Current state and next steps: `HANDOFF.md`.
 
+## Status
+Updated 2026-11-15.
+
+- **Phase 0 (data recon): done, pending owner review.** Findings are in `data-inventory.md`. Five of nine sources are confirmed live (budget, both Kela datasets, invoices, StatFin). Four are partial or open: the company register (weak on associations and foundations), Tax Administration (listed, not queried), and the two grants sources (STEA, Tutkiavustuksia), which have no documented bulk file or API. See the decisions at the end of the inventory.
+- **What changed in the plan because of it:**
+  - The budget CSV link was dead. The budget and actuals come from the State Treasury API `api.tutkihallintoa.fi/valtiontalous/v1`, open and without a key, with a 3-year limit per request.
+  - Kela files cannot be summed as they are. They hold rollup rows and several time grains. With the rollup filter, Kela's 2024 totals match the Treasury's actuals within 1.1% (asumistuki) and 0.4% (opintotuki).
+  - Confidential suppliers appear in the invoice data as `NA`, and the invoice data includes municipalities, so neither assumption in the data table below held.
+  - File sizes are larger than listed on the open data portal (a 2024 Kela file is 306 MB, a 2024 invoice file 807 MB).
+- **Next: Phase 1** (thin vertical slice), after the owner has answered the open decisions in the inventory.
+
 ## Goal
 A web app for browsing where Finland's public money comes from and where it goes, down to the most detailed level the public data allows: benefit by benefit, grant by grant, supplier by supplier. Everything is searchable under broad terms with working suggestions, and filterable by year, sector and so on. The owner wants to be able to say "each euro accounted for when possible", so the app also has to show honestly where it can't trace a euro.
 
@@ -18,7 +29,7 @@ A web app for browsing where Finland's public money comes from and where it goes
 3. **Municipalities and wellbeing counties:** out of the first release as their own subject. Only include them where the state sends them money for a specific purpose (state transfers to municipalities), as a recipient in the flow table.
 
 ## Data: what exists, at which depth
-Researched 2026-11-15 from a cloud session with no direct access to the sites. Anything marked "verify" has not been tested against the live files.
+Researched 2026-11-15 from a cloud session with no direct access to the sites, then checked against the live sources in Phase 0 (see `data-inventory.md`, which overrides this section where they differ). Entries marked "verify" below were tested unless the inventory says otherwise.
 
 ### Level 1: top-down (whole public sector, by category)
 - **Statistics Finland StatFin (PxWeb API, pxdata.stat.fi):** general government expenditure by function (COFOG, table 12a6), revenue and expenditure (11zf quarterly, 15ah annual back to 1975), deficit and debt. Caveat: StatFin changed identifiers and variable codes on 2026-06-08, so older example queries break. Series break in 2023 when health and social services moved to wellbeing services counties.
@@ -26,18 +37,18 @@ Researched 2026-11-15 from a cloud session with no direct access to the sites. A
 - Use: the headline view and the Finland-vs-EU context.
 
 ### Level 2: the state budget, line by line (planned and actual)
-- **Ministry of Finance, budjetti.vm.fi:** the budget as open CSV/XML (momentti / budget item structure). The CSV link I found is from 2015; verify the current URL, also listed on Avoindata.fi under the State Treasury (CC BY 4.0).
-- **State Treasury, Tutkihallintoa.fi / avoindata.tutkihallintoa.fi:** REST APIs (OpenAPI) with budget and actual figures from 1998, monthly implementation reports, chart of accounts. Documentation mostly in Finnish.
+- **Ministry of Finance, budjetti.vm.fi:** dead. The old open data URL now 404s and redirects to the ministry homepage; the avoindata.fi records for it are stale. Use the Treasury API below.
+- **State Treasury, avoindata.tutkihallintoa.fi:** REST API "Valtion talous v1" at `https://api.tutkihallintoa.fi/valtiontalous/v1/`, CSV output, open and without a key (confirmed). Budget and actual figures by momentti and month, with a 3-year limit per request. Transactions work for 2010 onwards in tests; how far back items can be joined is open. Documentation mostly in Finnish.
 - Use: the backbone. Every other dataset should hang off a budget item where possible.
 
 ### Level 3: recipient level
 | Question | Source | What it really gives | Limits |
 |---|---|---|---|
-| asumistuki, opintotuki, toimeentulotuki and other Kela benefits | Kela open data (Kelasto) on avoindata.suomi.fi, CC BY 4.0 | Totals paid and recipient counts by benefit, month/year, region and other splits. Housing allowance annual from 1994, monthly from 2018. Student aid annual from 2005, monthly from 2018. Basic social assistance from 2017. | Aggregates only, never individuals. Groups under four people are suppressed. Annual summary lacks recipient totals for some benefits, including housing allowance. |
-| Grants to järjestöt and others | Tutkiavustuksia.fi (State Treasury's central grants register); STEA grants at avustukset.stea.fi; some ministries publish lists on their own sites | Recipient, amount, purpose, grant authority. STEA alone: about €274m to 686 organisations in 2026. The register covers a few billion euros a year across dozens of grant authorities. | Verify whether Tutkiavustuksia.fi offers bulk download or an API. Its own material lists things to keep in mind (state transfers to municipalities, loans and guarantees, tax reliefs and similar are not "grants"). Older years may be patchy. |
-| Payments to companies and other suppliers | Tutkihankintoja.fi / OpenProcurement.fi data on avoindata.suomi.fi | Central government invoices from 2016, yearly files (TSV/CSV, one row per accounting row), vendor business ID where it was on the invoice, procurement categories. One resource is about 275 MB. | State budget economy only (plus a few cities and some others). Confidential purchases are left out and some rows are anonymised. Not the whole public sector. |
+| asumistuki, opintotuki, toimeentulotuki and other Kela benefits | Kela open data (Kelasto) on avoindata.suomi.fi, CC BY 4.0 | Totals paid and recipient counts by benefit, month/year, region and other splits. Housing allowance annual from 1994, monthly from 2018. Student aid annual from 2005, monthly from 2018. Basic social assistance from 2017 (not checked in Phase 0). | Aggregates only, never individuals. Groups under four people are suppressed into municipality 199 / "Tuntematon". Housing allowance has no recipient counts, student aid does. Files contain rollup rows and several time grains; summing them naively overcounts by 20 to 36 times, so a strict filter is required (inventory, sources 2 and 3). Files are 100 to 300 MB per year. |
+| Grants to järjestöt and others | Tutkiavustuksia.fi (State Treasury's central grants register); STEA grants at avustukset.stea.fi; some ministries publish lists on their own sites | Recipient, amount, purpose, grant authority. STEA alone: about €274m to 686 organisations in 2026. The register covers a few billion euros a year across dozens of grant authorities. | Checked: neither Tutkiavustuksia (a dashboard at tutkihallintoa.fi/valtionavustukset) nor the STEA site (avustukset.stea.fi, 766 organisations and €273.9 m granted for 2026) shows a documented bulk download or API. Unresolved, see the inventory. Its own material lists things to keep in mind (state transfers to municipalities, loans and guarantees, tax reliefs and similar are not "grants"). Data arrives up to 3 months late and older years may be patchy. |
+| Payments to companies and other suppliers | Tutkihankintoja.fi / OpenProcurement.fi data on avoindata.suomi.fi | Central government invoices from 2016, yearly files (semicolon-delimited despite the TSV/CSV label, one row per accounting row), vendor business ID where it was on the invoice, procurement categories. Files run from 272 MB (2017) to over 800 MB (2024, 2025). | State budget economy plus some municipalities (separate with the `sektori` column). Confidential purchases do appear, with supplier ID `NA` and name "Salassa pidettävä", and some rows are anonymised. Not the whole public sector. |
 | The rest of the public sector's purchases | National procurement data repository, run by the State Treasury | Planned to cover state, municipalities, wellbeing counties and Kela. | Not available yet: state agencies start supplying data in May 2027, municipalities in August 2028. Treat as future work, not a dependency. |
-| Tax and other income by source | StatFin, Treasury, Tax Administration statistics | Revenue by tax type. | Tax Administration open data not yet checked (verify). |
+| Tax and other income by source | StatFin, Treasury, Tax Administration statistics | Revenue by tax type. | Tax revenue by type is already in the Treasury budget (main class 11). Tax Administration has open CSVs of public corporate tax data and a PxWeb database (`vero2.stat.fi`), listed but not queried in Phase 0. |
 
 ### Not available (say so in the app)
 Anything that is not published: confidential purchases, individual-level payments, much of municipal and wellbeing-county spending until the new repository fills up, and pension funds outside the state budget. The app should show this as a visible gap, not hide it.
@@ -79,10 +90,17 @@ A dataset counts as done only when its source URL, fields and filters are confir
 - Data size on static hosting; mitigated by aggregation at build time, with a backend as the fallback.
 
 ## Sources
-- Open Knowledge Index, Finland budget: https://2015.index.okfn.org/place/finland/budget/
+- State Treasury API portal ("Valtion talous v1" and five other APIs), confirmed live in Phase 0: https://avoindata.tutkihallintoa.fi/apis
+- State Treasury API base URL used: https://api.tutkihallintoa.fi/valtiontalous/v1/
 - Exploreadministration.fi APIs: https://www.exploreadministration.fi/application-program-interfaces/
 - State Treasury API info: https://valtiokonttori.fi/en/application-program-interfaces-to-public-sector-data
-- Avoindata.fi, State Treasury budget dataset: https://www.avoindata.fi/data/en_GB/dataset/groups/valtion-budjettitalous
+- Superseded: Open Knowledge Index, Finland budget (2015): https://2015.index.okfn.org/place/finland/budget/
+- Superseded: Avoindata.fi, State Treasury budget dataset (only links to netra.fi): https://www.avoindata.fi/data/en_GB/dataset/groups/valtion-budjettitalous
+- Company register (PRH YTJ open data API v3): https://avoindata.prh.fi/opendata-ytj-api/v3/companies
+- Tax Administration open data: https://www.vero.fi/tietoa-verohallinnosta/tilastot/avoin_dat/
+- Tax Administration statistics database (PxWeb): https://vero2.stat.fi/PXWeb/api/v1/fi/Vero
+- Tutkiavustuksia (State Treasury grants dashboard): https://www.tutkihallintoa.fi/valtionavustukset/
+- STEA grants site: https://avustukset.stea.fi/
 - StatFin: https://pxdata.stat.fi/PXWeb/pxweb/en/StatFin/
 - Kela open data: https://tietotarjotin.fi/en/open-data
 - Kela housing allowance expenditure: https://avoindata.suomi.fi/data/en/dataset/maksetut-yleiset-asumistuet1
