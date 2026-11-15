@@ -8,6 +8,6 @@ Small excerpts from the live sources, kept as fixtures for pipeline tests. Fetch
 | `treasury_297055_opintoraha_ja_asumislisa_2024.csv` | Same endpoint, `momentti=297055` (full response) | As above |
 | `kela_asumistuki_2026_first_rows.csv` | Kela, Maksetut yleiset asumistuet, `data_2026.csv`, first rows | Kela, CC BY 4.0 |
 | `kela_opintotuki_2026_first_rows.csv` | Kela, Opintotuen saajat ja maksetut tuet, `data_2026.csv`, first rows | Kela, CC BY 4.0 |
-| `tutkihankintoja_2025_first_rows.csv` | Tutkihankintoja.fi data, `th_data_2025.csv`, first rows (semicolon-delimited) | CC BY 4.0, State Treasury and Ministry of Finance |
+| `tutkihankintoja_2025_first_rows.csv` | Tutkihankintoja.fi data, `th_data_2025.csv`, first rows (semicolon-delimited) | CC BY 4.0, published by Hansel Oy per the CKAN record |
 
 Source: Kela (Kelasto), licensed CC BY 4.0.

@@ -14,7 +14,7 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
 | 1 | State budget, Treasury API "Valtion talous" | confirmed live | Open, no key. Replaces the dead budjetti.vm.fi link. Reconciles with Kela to about 1%. |
 | 2 | Kela asumistuki | confirmed live | Total checks out against the budget, but only with a strict rollup filter. A naive sum is about 21 times too high. |
 | 3 | Kela opintotuki | confirmed live | Same trap. Checks out against the budget to 0.4%. |
-| 4 | Tutkihankintoja invoices | confirmed live (sample) | Schema stable 2016 to 2026. Includes municipalities. Confidential suppliers appear as `NA`. |
+| 4 | Tutkihankintoja invoices | confirmed live (sample) | Schema stable 2016 to 2026. Some rows are anonymised (`NA` supplier). Dataset title mentions municipalities; not checked. |
 | 5 | StatFin (12a6, 11zf, 15ah) | confirmed live | PxWeb v1 still works at new paths. Licence not checked. |
 | 6 | Company register (PRH YTJ) | partial / open | Works for companies. Coverage of associations and foundations is mixed. |
 | 7 | Tax Administration | partial / open | Open CSV and a PxWeb database exist. Neither was queried beyond listing. |
@@ -28,8 +28,8 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
 3. **Suppression leaves residue.** Kela groups under four people are folded into municipality `199` / `Tuntematon`. That bucket can net negative (asumistuki 2024: −€42.1 m) because refunds are negative. 29,660 rows in the asumistuki 2024 file are negative. Show it as "not traced to a municipality", never drop or net it away.
 4. **CKAN `size` fields are wrong.** Asumistuki 2024 is listed as 17 MB and is 306 MB. Real sizes need `curl -r 0-0 -D -` and the `Content-Range` header. HEAD requests to the download URLs return 403.
 5. **Tutkihankintoja is semicolon-delimited** although the resources are labelled TSV or CSV. The `lasku_id` format changed after 2016 (plain number, then `vo|fab|number|unit|date`).
-6. **Confidential suppliers do appear** in the invoice data, as supplier ID `NA` and name `Salassa pidettävä`. The plan said they are "left out"; that is only partly true. Count them as "not traced".
-7. **Tutkihankintoja includes municipalities** (the dataset is titled "valtion ja kuntien ostolaskut"). Use the `sektori` column to separate state from the rest. The plan assumed state only.
+6. **Anonymised invoice rows exist.** Some rows have supplier ID `NA` and name `Salassa pidettävä` ("kept secret"). The one sample seen was a translation and interpreting row for the immigration service, which looks like a protected individual rather than a confidential purchase. A sample cannot show whether whole confidential purchases are excluded; the plan and handoff say they are, so keep saying so on the page. Count the `NA` rows as "not traced".
+7. **Tutkihankintoja may include municipalities.** The dataset title is "valtion ja kuntien ostolaskut", which fits the plan's note about "a few cities and some others". Only `sektori = Valtio` was seen in the sample rows. Which other `sektori` values exist and how much money they hold is unchecked.
 8. **Dead or stale URLs:** `budjetti.vm.fi/indox/opendata/` (404, redirects to the ministry homepage), the PRH v1 company API (404), and the avoindata.fi records for the budget (`valtion-budjettitalous` only links to netra.fi) and the Ministry's budget proposals (last updated 2018). Do not use them.
 9. **StatFin paths changed.** Old `statfin_*_pxt_*.px` style paths return 400. The working paths are in source 5.
 10. **Treasury `hallinnonalat` has two blank rows** at the top of the CSV.
@@ -46,7 +46,7 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
 - Transactions query parameters: `momentti`, `luku`, `paaluokka`, `takptili`, `tililaji`, `tiliryhma`, `ylatiliryhma`, `tililuokka`, `lkptili`, `hallinnonala`, `tilivirasto`, `monthFrom`, `monthTo`, `yearFrom`, `yearTo`.
 - **Constraint:** the time span may be at most 3 years. A call without a year range returns HTTP 400 with `Haun aikajänne saa olla enintään 3 vuotta`, although the portal text says it should return the last three years. The pipeline must request in 3-year windows.
 - Transactions columns: `Vuosi, Kk, Ha_Tunnus, Hallinnonala, Tv_Tunnus, Kirjanpitoyksikkö, PaaluokkaOsasto_*, Luku_*, Momentti_*, TakpT_*, Tililuokka_*, Ylatiliryhma_*, Tiliryhma_*, Tililaji_*, LkpT_*, Alkuperäinen_talousarvio, Lisätalousarvio, Voimassaoleva_talousarvio, Käytettävissä, Alkusaldo, Nettokertymä_ko_vuodelta, NettoKertymaAikVuosSiirrt, Nettokertymä, Loppusaldo`.
-- **What counts as "actual":** summing `Nettokertymä` over all rows of a momentti and year reconciles with Kela (see below). Rows are per month, account and unit, and monthly figures do not climb over the year, so they are flows, not year-to-date totals. `Alkusaldo` and `Loppusaldo` behave oddly (Loppusaldo equals Nettokertymä from month 2 on) and are **not understood yet; do not use them**. Budget columns (`Alkuperäinen_talousarvio`, `Voimassaoleva_talousarvio`) are filled on only some rows, not every month; sum, do not average.
+- **What counts as "actual": not settled.** Summing `Nettokertymä` over all rows of a momentti and year reconciles with Kela (see below), but for both test items `Nettokertymä` equals `Nettokertymä_ko_vuodelta`, so the test cannot tell the two apart. They differ for other items (momentti 254074, for example in month 12). Which is "actual for year X" is open. Observation: asumistuki momentti 331054 sums to exactly €1,696,100,000, a round figure, which looks like transfers to Kela rather than payments to households; that would fit the 1.1% gap. Rows are per month, account and unit, and monthly figures do not climb over the year, so they are flows, not year-to-date totals. `Alkusaldo` and `Loppusaldo` behave oddly (Loppusaldo equals Nettokertymä from month 2 on) and are **not understood yet; do not use them**. Budget columns (`Alkuperäinen_talousarvio`, `Voimassaoleva_talousarvio`) are filled on only some rows, not every month; sum, do not average.
 - Some rows are marked `Tapahtumia: vain talousarviokirjanpidossa` (budget-only rows with no ledger account). Keep them, they carry the budget amount.
 - History: queries for 2010, 2015, 2020 and 2024 work. A query for 1998 returned no rows for the test momentti, probably because momentti codes were renumbered. The structure tables (`paaluokat`, `luvut`, `momentit`) only list 2021 to 2026. How far back transactions can be joined to a stable item is open.
 - Names change case between years (for example `Verot ja veronluonteiset tulot` until 2024, `VEROT JA VERONLUONTEISET TULOT` from 2025). Normalise before grouping.
@@ -104,11 +104,11 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 **Status: confirmed live (sample only; no full year analysed).**
 
-- Dataset: https://avoindata.suomi.fi/data/en_GB/dataset/tutkihankintoja-data (CKAN id `tutkihankintoja-data`, title "Tutkihankintoja.fi-palvelun data (valtion ja kuntien ostolaskut)"). CC BY 4.0. Updated 2026-11-10.
+- Dataset: https://avoindata.suomi.fi/data/en_GB/dataset/tutkihankintoja-data (CKAN id `tutkihankintoja-data`, title "Tutkihankintoja.fi-palvelun data (valtion ja kuntien ostolaskut)"). Published by Hansel Oy per the CKAN record. CC BY 4.0. Updated 2026-11-10.
 - Files: `th_data_2016.csv` … `th_data_2026.csv`, one per year, plus `th_kaannokset.xlsx` (translations, 17 KB, not opened). Measured sizes: 2017 is 272 MB, 2024 is 807 MB, 2025 is 826 MB (other years not measured). The plan's "about 275 MB" held only for early years. A CI download of all years is likely several GB; Parquet output will be much smaller.
 - **Format:** semicolon-delimited, UTF-8, one header row, even for files labelled TSV. Same 13 columns in 2016, 2022, 2024, 2025 and 2026: `lasku_id;tili;tiliointisumma;tositepvm;toimittaja_y_tunnus;toimittaja_nimi;hankintayksikko_tunnus;hankintayksikko;ylaorganisaatio_tunnus;ylaorganisaatio;sektori;tuote_palveluryhma;hankintakategoria`.
 - One row per accounting row, not per invoice. `lasku_id` is not unique across rows. `tili` is an account code plus name in one field. `tiliointisumma` can be negative (credit notes, for example −1170.0 for a Pfizer row in 2026).
-- `toimittaja_y_tunnus` is the supplier business ID. `NA` appears together with `toimittaja_nimi = Salassa pidettävä` for confidential purchases. Count such rows as "not traced".
+- `toimittaja_y_tunnus` is the supplier business ID. `NA` appears together with `toimittaja_nimi = Salassa pidettävä` on anonymised rows (see trap 6). Count such rows as "not traced".
 - `sektori` is `Valtio` in the sample rows; the dataset title says municipalities are included. Which other values exist and how much money they hold was **not** checked. `ylaorganisaatio` is the administrative branch (hallinnonala), `hankintayksikko` the agency.
 - Open: totals per year, share with `NA` supplier IDs, share of rows with a business ID, and whether yearly totals can be tied to the budget.
 - Fixture: `data-pipeline/samples/tutkihankintoja_2025_first_rows.csv`.
@@ -128,7 +128,7 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 - 12a6 variables: `sektoriluokitus_7_20230101` (sector, 8 values from `S13`), `taloustoimi_1_20180101` (transaction, 23 values), `julkisyht_teht_3_20010101` (function, 80 values from `SSS`, `G01`…; eliminable), `timeperiod_y`, `contentscode` (`jmete-cp`, `jmete-bkt_suhde`, `percapita`). A JSON-stat2 data query worked and returned a table with a stated update time of 2025-12-18.
 - 11zf: `timeperiod_q`, `taloustoimi_1_20180101` (73), `sektoriluokitus_7_20230101` (7), `contentscode` (7). 15ah: sector (7), transaction (90), `timeperiod_y`, `contentscode` (2).
-- The 2026-06-08 identifier change in the plan is consistent with what was found (the variable codes carry date suffixes such as `_20230101`). Code and value lists above are today's. A pipeline test must fail loudly if they change.
+- Code and value lists above are today's. The suffixes such as `_20230101` are classification version dates; they are not evidence about the 2026-06-08 identifier change in the plan, which was not independently confirmed. A pipeline test must fail loudly if codes change.
 - The asterisk on the latest year in the table titles marks preliminary data.
 - Not done: Eurostat `gov_10a_exp` (not part of this recon), the 2023 break from wellbeing services counties (stated by the plan, not re-checked), and the **licence** (Statistics Finland's open data licence is expected to be CC BY 4.0, but it was not confirmed on a live page).
 
@@ -176,7 +176,7 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 ## Decisions this recon needs from the owner
 
 1. **STEA and Tutkiavustuksia (Phase 4):** neither shows a documented bulk file or API. Do we ask the two organisations, or decide on page-level collection, or park grants?
-2. **Municipal invoices:** Tutkihankintoja includes municipalities. Include them as a recipient/payer category (the plan said municipalities are out except as state-transfer recipients), or filter to `sektori = Valtio`?
+2. **Municipal invoices (Phase 5, not blocking):** the Tutkihankintoja title mentions municipalities; check how much money they hold first. Include them as a recipient/payer category (the plan said municipalities are out except as state-transfer recipients), or filter to `sektori = Valtio`?
 3. **Reconciliation tolerance:** the Treasury and Kela totals differ by about 1%. Accept a stated tolerance with a written reason?
 
 ## What it means for Phase 1
