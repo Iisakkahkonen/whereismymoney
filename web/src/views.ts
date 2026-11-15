@@ -30,10 +30,8 @@ function meter(tracedEur: number, actualEur: number, share: number): HTMLElement
     h(
       "div",
       { class: "meter-legend" },
-      h("span", { class: "dot traced" }),
-      h("span", {}, `${t("overview.traced")}: ${eur(tracedEur)} (${pct(share)})`),
-      h("span", { class: "dot untraced" }),
-      h("span", {}, `${t("overview.untraced")}: ${eur(Math.max(0, actualEur - tracedEur))}`),
+      h("span", { class: "legend-item" }, h("span", { class: "dot traced" }), `${t("overview.traced")}: ${eur(tracedEur)} (${pct(share)})`),
+      h("span", { class: "legend-item" }, h("span", { class: "dot untraced" }), `${t("overview.untraced")}: ${eur(Math.max(0, actualEur - tracedEur))}`),
     ),
   );
 }

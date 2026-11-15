@@ -66,10 +66,11 @@ button.lang[aria-pressed="true"] { background: var(--accent); color: #fff; borde
 .meter-wrap { margin: 0.25rem 0 0.5rem; }
 .meter { height: 14px; background: var(--untraced); border-radius: 7px; overflow: hidden; }
 .meter-traced { height: 100%; background: var(--accent); min-width: 0; }
-.meter-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; align-items: center; margin-top: 0.4rem; font-size: 0.9rem; }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.meter-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.4rem; font-size: 0.9rem; }
+.legend-item { display: inline-flex; align-items: center; gap: 0.4rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
 .dot.traced { background: var(--accent); }
-.dot.untraced { background: var(--untraced); margin-left: 0.75rem; }
+.dot.untraced { background: var(--untraced); }
 
 .list { padding-left: 1.1rem; margin: 0; }
 .list li { margin: 0.3rem 0; }

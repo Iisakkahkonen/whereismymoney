@@ -59,11 +59,12 @@ export function treemap(el: HTMLElement, items: Item[], onOpen: (momentti: strin
         nodeClick: "link",
         breadcrumb: { show: false },
         label: { show: true, formatter: "{b}", overflow: "truncate", color: "#10151a" },
-        upperLabel: { show: true, height: 22, color: "#10151a" },
-        itemStyle: { borderColor: css("--bg"), borderWidth: 1, gapWidth: 1 },
+        upperLabel: { show: true, height: 22, color: "#ffffff" },
+        itemStyle: { borderColor: css("--surface"), borderWidth: 1, gapWidth: 1 },
+        // Group headers stay neutral so that blue (traced) is the only colour with meaning.
         levels: [
-          { itemStyle: { borderWidth: 0, gapWidth: 3 } },
-          { itemStyle: { gapWidth: 1, borderColorSaturation: 0.4 } },
+          { itemStyle: { color: "#56606b", borderColor: css("--surface"), borderWidth: 2, gapWidth: 3 } },
+          { itemStyle: { borderColor: css("--surface"), borderWidth: 1, gapWidth: 1 } },
         ],
         data: [...groups.values()],
       },
