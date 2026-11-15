@@ -16,12 +16,12 @@ Status: Phase 1 (thin vertical slice). The state budget's actual spending for 20
 ## Run it locally
 
 ```bash
-# 1. Build the data (Treasury fetched fresh from the API, Kela from the committed snapshot; add --use-cache to work offline)
+# 1. Build the data (Treasury fetched fresh from the API, Kela from the committed snapshot; add --use-cache for a cache-only run that makes no request and stops if a file is missing)
 pip install pyarrow requests pytest
 cd data-pipeline && python -m pytest && python -m wimm.build --out ../web/public/data
 
 # 1b. Refresh the Kela snapshot (downloads about 1.5 GB again into data-pipeline/cache; run on a normal connection;
-#     --kela recompute re-aggregates the files already there)
+#     --kela recompute re-aggregates the files already there, offline)
 python -m wimm.build --kela download --out ../web/public/data
 
 # 2. Run the site
