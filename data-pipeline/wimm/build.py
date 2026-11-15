@@ -62,6 +62,24 @@ def check_budget_balances(items: list, years: list[int]) -> None:
             raise AssertionError(f"{y}: budget revenue {rev:,.2f} != expenditure {exp:,.2f}")
 
 
+def search_docs(items: list, links: list) -> list[dict]:
+    """One search entry per budget item (latest name) and per benefit.
+
+    A benefit and the budget item that funds it are one result, not two: the
+    benefit entry carries the budget item's own name and code as search text,
+    and the budget item gets no entry of its own."""
+    latest = {}
+    for it in sorted(items, key=lambda i: i.year):
+        latest[it.momentti] = it
+    linked = {l.momentti for l in links}
+    docs = [{"id": f"b:{m}", "type": "budget", "title": it.name, "code": it.code, "group": it.hallinnonala,
+             "momentti": m, "text": f"{it.name} {it.code} {it.hallinnonala}"} for m, it in latest.items() if m not in linked]
+    docs += [{"id": f"k:{l.benefit}", "type": "benefit", "title": l.name_fi, "title_en": l.name_en,
+              "code": latest[l.momentti].code, "group": "Kela", "momentti": l.momentti, "benefit": l.benefit,
+              "text": f"{l.name_fi} {l.name_en} {l.keywords} {latest[l.momentti].name} {latest[l.momentti].code}"} for l in links]
+    return docs
+
+
 def build(cache: Path, out: Path, years: list[int]) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
@@ -117,16 +135,7 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
         "source": [next((l.benefit for l in LINKS if l.momentti == i.momentti), "") for i in items],
     }), out / "coverage.parquet", compression="zstd")
 
-    # Search index: one entry per budget item (latest name) and per benefit.
-    latest = {}
-    for it in sorted(items, key=lambda i: i.year):
-        latest[it.momentti] = it
-    docs = [{"id": f"b:{m}", "type": "budget", "title": it.name, "code": it.code, "group": it.hallinnonala,
-             "momentti": m, "text": f"{it.name} {it.code} {it.hallinnonala}"} for m, it in latest.items()]
-    docs += [{"id": f"k:{l.benefit}", "type": "benefit", "title": l.name_fi, "title_en": l.name_en, "code": "Kela",
-              "group": "Kela", "momentti": l.momentti, "benefit": l.benefit,
-              "text": f"{l.name_fi} {l.name_en} {l.keywords}"} for l in LINKS]
-    (out / "search_index.json").write_text(json.dumps(docs, ensure_ascii=False), encoding="utf-8")
+    (out / "search_index.json").write_text(json.dumps(search_docs(items, LINKS), ensure_ascii=False), encoding="utf-8")
 
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

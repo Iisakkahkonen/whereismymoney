@@ -12,7 +12,7 @@ import requests
 USER_AGENT = "whereismymoney-pipeline (open source; https://github.com/Iisakkahkonen/whereismymoney)"
 
 
-def fetch(url: str, dest: Path, *, retries: int = 3, timeout: int = 600) -> Path:
+def fetch(url: str, dest: Path, *, retries: int = 4, timeout: tuple[int, int] = (30, 90)) -> Path:
     """Download url to dest unless it is already cached. Returns dest."""
     if dest.exists() and dest.stat().st_size > 0:
         return dest

@@ -23,6 +23,16 @@ def test_every_linked_item_is_a_known_budget_item_code():
     assert all(m.isdigit() and len(m) == 6 for m in (l.momentti for l in build.LINKS))
 
 
+def test_a_benefit_and_its_budget_item_are_one_search_result():
+    link = build.LINKS[0]  # asumistuki, funded by momentti 331054
+    items = [item(2024, link.momentti, "expenditure", 1.0), item(2024, "999999", "expenditure", 1.0)]
+    docs = build.search_docs(items, [link])
+    assert [d["id"] for d in docs] == ["b:999999", f"k:{link.benefit}"]
+    benefit = docs[1]
+    assert benefit["momentti"] == link.momentti
+    assert "housing allowance" in benefit["text"].lower() and "asumistuki" in benefit["text"].lower()
+
+
 def test_item_without_a_source_is_entirely_untraced():
     c = coverage.compute_coverage(1_000_000.0, 0.0)
     assert c.traced_eur == 0.0
