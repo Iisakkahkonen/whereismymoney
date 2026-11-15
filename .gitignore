@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Pipeline cache and generated data (built in CI, not committed)
+data-pipeline/cache/
+web/public/data/
+web/node_modules/
+web/dist/

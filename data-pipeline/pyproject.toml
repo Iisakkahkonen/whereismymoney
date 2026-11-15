@@ -1,0 +1,15 @@
+[project]
+name = "wimm"
+version = "0.1.0"
+description = "Data pipeline for whereismymoney: where Finland's public money comes from and goes"
+requires-python = ">=3.11"
+dependencies = ["pyarrow>=15", "requests>=2.31"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["wimm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
