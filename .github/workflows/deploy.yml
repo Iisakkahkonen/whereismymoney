@@ -1,0 +1,87 @@
+name: Build, test and deploy
+
+# Tests gate every deploy: pipeline tests (pytest), data checks inside the
+# pipeline build itself, the EN/FI parity check, the type check, and the
+# headless browser tests. The deploy job only runs if all of them passed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 21 * *" # Kela updates its statistics monthly by the 20th
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pyarrow requests pytest playwright
+
+      - name: Pipeline tests
+        run: python -m pytest data-pipeline -q
+
+      # The Kela files are 100 to 300 MB each; keep them between runs.
+      - name: Restore download cache
+        uses: actions/cache@v4
+        with:
+          path: data-pipeline/cache
+          key: pipeline-cache-${{ hashFiles('data-pipeline/wimm/kela.py') }}
+          restore-keys: pipeline-cache-
+
+      - name: Build data (fetches sources, runs all data checks)
+        working-directory: data-pipeline
+        run: python -m wimm.build --cache cache --out ../web/public/data
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Front end checks and build
+        working-directory: web
+        run: |
+          npm ci
+          npm run check:i18n
+          npm run build
+
+      - name: Install browser for tests
+        run: python -m playwright install --with-deps chromium
+
+      - name: Headless browser tests
+        run: python -m pytest e2e -q
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
