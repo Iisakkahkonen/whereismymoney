@@ -14,12 +14,12 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
 | 1 | State budget, Treasury API "Valtion talous" | confirmed live | Open, no key. Replaces the dead budjetti.vm.fi link. Reconciles with Kela to about 1%. |
 | 2 | Kela asumistuki | confirmed live | Total checks out against the budget, but only with a strict rollup filter. A naive sum is about 21 times too high. |
 | 3 | Kela opintotuki | confirmed live | Same trap. Checks out against the budget to 0.4%. |
-| 4 | Tutkihankintoja invoices | confirmed live (sample) | Schema stable 2016 to 2026. Some rows are anonymised (`NA` supplier). Dataset title mentions municipalities; not checked. |
+| 4 | Tutkihankintoja invoices | confirmed live | Schema stable 2016 to 2026. 2024 checked in full: state 39% of the euros, a few non-state organisations (mostly Helsinki) 61%. |
 | 5 | StatFin (12a6, 11zf, 15ah) | confirmed live | PxWeb v1 still works at new paths. Licence not checked. |
-| 6 | Company register (PRH YTJ) | partial / open | Works for companies. Coverage of associations and foundations is mixed. |
+| 6 | Company register (PRH YTJ) | partial / open | Works for companies. Associations and foundations are mostly missing (13 of 20 real grant recipients not found). |
 | 7 | Tax Administration | partial / open | Open CSV and a PxWeb database exist. Neither was queried beyond listing. |
-| 8 | STEA grants | partial / open | Public web UI only. No documented bulk file or API. |
-| 9 | Tutkiavustuksia register | partial / open | Embedded dashboard only. No documented bulk file or API. |
+| 8 | STEA grants | confirmed live | Official open Excel download (CC BY 4.0), 2017 to 2026, with business ID. 2024 total equals the Treasury budget line to the euro. |
+| 9 | Tutkiavustuksia register | partial / open | Embedded dashboard only. No documented bulk file or API. Other grantors (Business Finland, Academy of Finland, OKM) not covered by any bulk source yet. |
 
 ## Traps that will bite if ignored
 
@@ -29,7 +29,7 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
 4. **CKAN `size` fields are wrong.** Asumistuki 2024 is listed as 17 MB and is 306 MB. Real sizes need `curl -r 0-0 -D -` and the `Content-Range` header. HEAD requests to the download URLs return 403.
 5. **Tutkihankintoja is semicolon-delimited** although the resources are labelled TSV or CSV. The `lasku_id` format changed after 2016 (plain number, then `vo|fab|number|unit|date`).
 6. **Anonymised invoice rows exist.** Some rows have supplier ID `NA` and name `Salassa pidettävä` ("kept secret"). The one sample seen was a translation and interpreting row for the immigration service, which looks like a protected individual rather than a confidential purchase. A sample cannot show whether whole confidential purchases are excluded; the plan and handoff say they are, so keep saying so on the page. Count the `NA` rows as "not traced".
-7. **Tutkihankintoja may include municipalities.** The dataset title is "valtion ja kuntien ostolaskut", which fits the plan's note about "a few cities and some others". Only `sektori = Valtio` was seen in the sample rows. Which other `sektori` values exist and how much money they hold is unchecked.
+7. **Tutkihankintoja may include municipalities.** The dataset title is "valtion ja kuntien ostolaskut", which fits the plan's note about "a few cities and some others". The 2024 check (section 4) found two `sektori` values: `Valtio` and `Muut organisaatiot`, the latter mostly Helsinki and two wellbeing services counties.
 8. **Dead or stale URLs:** `budjetti.vm.fi/indox/opendata/` (404, redirects to the ministry homepage), the PRH v1 company API (404), and the avoindata.fi records for the budget (`valtion-budjettitalous` only links to netra.fi) and the Ministry's budget proposals (last updated 2018). Do not use them.
 9. **StatFin paths changed.** Old `statfin_*_pxt_*.px` style paths return 400. The working paths are in source 5.
 10. **Treasury `hallinnonalat` has two blank rows** at the top of the CSV.
@@ -109,8 +109,11 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 - **Format:** semicolon-delimited, UTF-8, one header row, even for files labelled TSV. Same 13 columns in 2016, 2022, 2024, 2025 and 2026: `lasku_id;tili;tiliointisumma;tositepvm;toimittaja_y_tunnus;toimittaja_nimi;hankintayksikko_tunnus;hankintayksikko;ylaorganisaatio_tunnus;ylaorganisaatio;sektori;tuote_palveluryhma;hankintakategoria`.
 - One row per accounting row, not per invoice. `lasku_id` is not unique across rows. `tili` is an account code plus name in one field. `tiliointisumma` can be negative (credit notes, for example −1170.0 for a Pfizer row in 2026).
 - `toimittaja_y_tunnus` is the supplier business ID. `NA` appears together with `toimittaja_nimi = Salassa pidettävä` on anonymised rows (see trap 6). Count such rows as "not traced".
-- `sektori` is `Valtio` in the sample rows; the dataset title says municipalities are included. Which other values exist and how much money they hold was **not** checked. `ylaorganisaatio` is the administrative branch (hallinnonala), `hankintayksikko` the agency.
-- Open: totals per year, share with `NA` supplier IDs, share of rows with a business ID, and whether yearly totals can be tied to the budget.
+- `sektori` is `Valtio` or `Muut organisaatiot` (2024). `ylaorganisaatio` is the administrative branch (hallinnonala), `hankintayksikko` the agency.
+- **2024 checked in full** (streamed the 807 MB file, nothing saved): 3,481,836 rows, net sum €13.02 bn. Supplier ID `NA` or blank on 73,807 rows, €320 m (2.5%). 31,131 negative rows, −€324 m.
+  - `sektori = Valtio`: 730,906 rows, **€5.12 bn (39%)**.
+  - `sektori = Muut organisaatiot`: 2,750,930 rows, **€7.90 bn (61%)**. By `ylaorganisaatio`: Helsinki €5.06 bn, Pirkanmaan hyvinvointialue €1.50 bn, Pohjois-Pohjanmaan hyvinvointialue €1.12 bn, Tampereen yliopisto €0.11 bn, Järvenpää €0.08 bn, Forssa €0.02 bn. So the non-state part is a handful of organisations, not a picture of Finnish municipalities.
+- Open: other years, and whether yearly totals can be tied to the budget.
 - Fixture: `data-pipeline/samples/tutkihankintoja_2025_first_rows.csv`.
 
 ## 5. Statistics Finland StatFin (PxWeb API v1)
@@ -138,10 +141,10 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 - Live API: `https://avoindata.prh.fi/opendata-ytj-api/v3/companies?businessId=<id>` or `?name=<text>`. Returns JSON with `businessId`, `names` (with history), `companyForms` and more. No key. The old v1 API (`/bis/v1/<id>`) returns 404.
 - The avoindata.fi record (`yritykset`, CC BY 4.0, updated daily per its notes) describes a bulk JSON file, but the CKAN record lists **no downloadable resources**; the notes only point to avoindata.prh.fi. Bulk access is unresolved.
-- The record's text says it covers trade-register forms and excludes sole traders. Coverage tests were mixed:
-  - Found: `2238370-0` (Oy), `0645278-8` (Oy), and by name `MIELI Suomen Mielenterveys ry` (`0202225-4`), which is an association.
-  - Not found: business ID `0214391-0` (an `ry` from the 2016 invoice sample, possibly dissolved), and by name `Suomen Punainen Risti` and `Takuusäätiö`, both large grant recipients.
-- Conclusion: usable for companies. For associations and foundations, which dominate the grants data, matching is unproven. Needs a test with a batch of real grant recipients before Phase 4. The association and foundation registers are separate and may need their own source.
+- The record's text says it covers trade-register forms and excludes sole traders. Tested with real grant recipients (business IDs from the STEA 2026 file: the 15 largest plus 25 random):
+  - 20 lookups succeeded; **7 found** (6 associations, 1 foundation), **13 not found**, including Suomen Punainen Risti, EHYT, SOSTE, Kehitysvammaliitto, Mielenterveyden Keskusliitto and A-klinikkasäätiö.
+  - The other 20 lookups failed with HTTP 429 (rate limit). I used about 0.3 s between calls; slower spacing is needed, and the rest were not retried.
+- Conclusion: usable for companies. Most large associations and foundations are not in this API. The grant files themselves carry organisation names and business IDs, so the entity table can be built from the source files, with YTJ only adding company data. A separate association register source, if one is open, was not searched for.
 
 ## 7. Tax Administration (Vero)
 
@@ -152,14 +155,33 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 - Not needed as a dependency for a first version: the state's tax revenue by type is already in the Treasury budget (main class 11 "Verot ja veronluonteiset tulot", from the `paaluokat` and transactions endpoints). Vero's own figures could cross-check it. Vero collects some taxes for others and not all state taxes (for example vehicle tax is collected by Traficom), so the two will not match exactly.
 - Corporate tax public data is per company, which is relevant to "where the money comes from" at company level. Whether to use it is a scope decision for the owner.
 
-## 8. STEA grants
+## 8. STEA grants (health and social organisations, Ministry of Social Affairs and Health)
 
-**Status: partial / open. Not resolved.**
+**Status: confirmed live.**
 
-- Public site: https://avustukset.stea.fi/ (a JavaScript app). Visited as a normal user. For 2026 it shows 766 organisations, 1,527 grant targets, €447,993,335 applied for, **€273,912,000 granted**, with per-organisation applied/granted amounts and number of targets. Years 2017 to 2026 are selectable. The plan said "about €274 m to 686 organisations"; the money matches and the organisation count on the live page is 766.
-- No download or export button and no mention of an open API were found on the pages. No business ID is shown in the list, only organisation names.
-- The page's own configuration contains a backend API address. **Probing it was blocked in this session and was not retried.** It is not documented as a public API, so it is not recorded here. Options for the owner: ask STEA whether a bulk file or API is offered, check their terms for reuse, or decide whether collecting the table from the public pages is acceptable.
-- No matching national dataset exists on avoindata.fi (searches for `valtionavustus`, `stea`, `tutkiavustuksia` returned nothing relevant). The avustus search only finds municipal grant lists (Helsinki, Oulu), which are out of scope for a first release.
+- The site has an official download page, https://avustukset.stea.fi/download, which says the open data follows Creative Commons Attribution 4.0 and offers two Excel files: `STEA-aineisto.xlsx` (grants from 2017) and a RAY file (slot machine association grants 2000 to 2016; not downloaded, so its schema is unchecked).
+- The STEA file comes from `GET https://stea-avustukset-api-app-prod.azurewebsites.net/api/Download?language=fi`, found in the site's own JavaScript and authorised by the owner for this recon. It returned 3.2 MB in under a second on the second try (the first attempt timed out with no bytes). The endpoint is not documented as an API, so repeat the check before relying on it.
+- One sheet per year, 2017 to 2026. Columns: `Järjestö, Y-tunnus, Vuosi, Avustuskohde, Avustuksen käyttötarkoitus, Maantiet. alue, Avustuskokonaisuus, Järjestöluokka, Haettu, Ehdotettu, Myönnetty` (applied, proposed, granted). One row per organisation and grant target. **Every row from 2021 on has a business ID**; 2017 to 2020 have 151 to 349 rows without one (names only).
+- Totals (granted):
+
+  | Year | Rows | Organisations | Granted € |
+  |---|---|---|---|
+  | 2017 | 3,017 | 1,273 | 322,719,393 |
+  | 2018 | 3,234 | 1,397 | 353,273,084 |
+  | 2019 | 2,759 | 1,144 | 361,850,000 |
+  | 2020 | 3,498 | 1,267 | 385,000,000 |
+  | 2021 | 2,956 | 1,105 | 362,440,000 |
+  | 2022 | 2,460 | 1,009 | 362,440,000 |
+  | 2023 | 2,299 | 984 | 373,600,000 |
+  | 2024 | 2,475 | 990 | 383,588,000 |
+  | 2025 | 2,262 | 952 | 304,088,000 |
+  | 2026 | 1,527 | 766 | 273,912,000 |
+
+- **Reconciles two ways.** 2026 matches the website exactly (1,527 targets, 766 organisations, €273,912,000 granted, €447,993,335 applied). 2024 granted €383,588,000 equals Treasury budget item 339050 "Avustukset yhdistyksille ja säätiöille terveyden ja sosiaalialan..." (Sosiaali- ja terveysministeriön hallinnonala): both the budget and `Nettokertymä` are €383,588,000. The plan's "686 organisations" was wrong; the live count is 766.
+- Traps: 8, 5, 2 and 1 duplicate (business ID, grant target, year) keys in 2017 to 2020 (none from 2021), so the build must fail or resolve them explicitly. `Myönnetty` is empty for undecided grants (the page says so). `Ehdotettu` and `Myönnetty` differ slightly in 2021 (€362.3 m vs €362.4 m). `Maantiet. alue` can hold a long comma-separated list. Sheet year always equals the `Vuosi` column.
+- The 2025 total (€304,088,000) equals the figure the Tutkiavustuksia page shows for "Avustukset terveys- ja sosiaalialan yhdistyksille ja säätiöille" (€304 m). The page did not state the year, so this is likely but unchecked.
+- Fixture: `data-pipeline/samples/stea_2026_first_rows.csv`. Credit STEA (CC BY 4.0).
+- STEA covers one grantor and one budget line. Other grants (OKM culture and sports, Business Finland, Academy of Finland, development aid) are not in it.
 
 ## 9. Tutkiavustuksia (State Treasury grants register)
 
@@ -169,18 +191,19 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 - The data comes from the grant authorities' legal duty to report applications and decisions within 3 months (Finlex 2022/1394), so it fills in gradually and recent months are incomplete. The page shows grant totals by recipient type (public bodies about €1.52 bn, companies about €1.30 bn, non-profits about €1.14 bn, others €0.20 bn), top grantors for 2026 (Business Finland €530 m, Research Council of Finland €305 m, Ministry of Education and Culture €276 m) and top recipients (VTT €255 m, University of Helsinki €119 m, Aalto €75 m).
 - A second report covers grants to non-profit communities from the **state ledger**, using accounts `82510000` (operating) and `82580000` (capital), "voittoa tavoittelemattomat yhteisöt". Ledger account 82510000 style codes also appear in the Treasury transactions API (`LkpT_*` columns); whether that gives a cross-check by account is untested.
 - No bulk file, API or export was found, and the Treasury API portal's six APIs do not include grants.
-- Open: ask the Treasury whether grant decisions are published as open data, and what recipient identifiers (business ID) are available.
+- Open: ask the Treasury whether grant decisions are published as open data, and what recipient identifiers (business ID) are available. Searches of avoindata.fi for national grants (`valtionavustus`, `myönnetyt avustukset`, `ministeriön avustukset`, `OKM avustukset`, `Business Finland`, `Suomen Akatemia`, `liikuntajärjestöt`) found only municipal lists (Helsinki, Oulu).
 
 ---
 
-## Decisions this recon needs from the owner
+## Decisions (owner's answers, 2026-11-15)
 
-1. **STEA and Tutkiavustuksia (Phase 4):** neither shows a documented bulk file or API. Do we ask the two organisations, or decide on page-level collection, or park grants?
-2. **Municipal invoices (Phase 5, not blocking):** the Tutkihankintoja title mentions municipalities; check how much money they hold first. Include them as a recipient/payer category (the plan said municipalities are out except as state-transfer recipients), or filter to `sektori = Valtio`?
-3. **Reconciliation tolerance:** the Treasury and Kela totals differ by about 1%. Accept a stated tolerance with a written reason?
+1. **Treasury and Kela totals differ by about 1%:** accepted. Document the gap, do not hide it. The page shows both figures and the known difference (asumistuki 2024: Treasury €1,696.1 m, Kela €1,676.9 m; opintoraha ja asumislisä: €515.5 m vs €517.7 m). The pipeline test asserts the gap stays under 2% (a proposed number; adjust if it proves too tight or too loose).
+2. **Grants:** find more sources first, email the organisations only if nothing works. Done so far: STEA turned out to have an official open Excel (section 8). Still open: Tutkiavustuksia, and the other grantors (OKM, Business Finland, Academy of Finland, development aid). To try next: each grantor's own results pages, the Treasury's other public reports, and an email to the State Treasury asking for grant decisions as open data.
+3. **Municipal invoices:** include them "if there is enough data". There is not enough for a municipal picture: the 2024 non-state part is a handful of organisations, mostly Helsinki. Plan: include them as a clearly labelled separate category ("other organisations, partial coverage"), list the organisations covered, never present them as "municipalities", and default the main view to `Valtio`.
 
 ## What it means for Phase 1
 
+- STEA grants are small (3 MB) and reconcile to the budget; they could join Phase 1 or 2 cheaply if the owner wants a recipient-level example early. Phase 4 stays for the other grantors.
 - The budget side is straightforward: Treasury API, 3-year request windows, `Nettokertymä` summed per momentti and year.
 - Kela files are 100 to 300 MB per year but only a few rollup rows are needed. Download once, filter by the exact rollup rules above, and store the aggregate as Parquet. Do not ship raw files.
 - The pipeline needs these checks from day one: rollup equals the sum of parts, one value per key and year, and a Kela-to-budget tolerance test using momentti 331054 and 297055.

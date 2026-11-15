@@ -9,5 +9,6 @@ Small excerpts from the live sources, kept as fixtures for pipeline tests. Fetch
 | `kela_asumistuki_2026_first_rows.csv` | Kela, Maksetut yleiset asumistuet, `data_2026.csv`, first rows | Kela, CC BY 4.0 |
 | `kela_opintotuki_2026_first_rows.csv` | Kela, Opintotuen saajat ja maksetut tuet, `data_2026.csv`, first rows | Kela, CC BY 4.0 |
 | `tutkihankintoja_2025_first_rows.csv` | Tutkihankintoja.fi data, `th_data_2025.csv`, first rows (semicolon-delimited) | CC BY 4.0, published by Hansel Oy per the CKAN record |
+| `stea_2026_first_rows.csv` | STEA open data, `STEA-aineisto.xlsx`, sheet 2026, header and first 8 rows (converted to CSV) | STEA, CC BY 4.0 |
 
-Source: Kela (Kelasto), licensed CC BY 4.0.
+Sources: Kela (Kelasto), licensed CC BY 4.0. STEA (Ministry of Social Affairs and Health), licensed CC BY 4.0.
