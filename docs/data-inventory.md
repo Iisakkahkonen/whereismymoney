@@ -197,20 +197,38 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 ---
 
-## 10. Wellbeing services counties and municipalities: state transfers (recon, 2026-11-15; parked)
+## 10. Wellbeing services counties: state funding per county (recon 2026-11-15; reconciles, not built)
 
-**Status: partial. Recon stopped early by the owner's decision, who chose not to download the spreadsheets. Nothing here is built.**
+**Status: confirmed by reading the files; nothing built yet. The per-county funding of budget item 28.89.31 reconciles to the Treasury actual within one euro in 2023, 2024 and 2025.**
 
-What was checked, and how sure we are:
+**Source.** The Ministry of Finance (Valtiovarainministeriö, Kunta- ja aluehallinto-osasto) publishes one Excel workbook per year on https://vm.fi/rahoituslaskelmat ("Hyvinvointialueiden rahoitus vuonna …", payment-decision versions). The page states no licence or terms of use; **reuse terms are unconfirmed** (ask the ministry before publishing derived data; no licence credit can be written until then). The server rate-limits bursts (HTTP 429), so download one file at a time with pauses. Files downloaded 2026-11-15 and read with a stdlib-only parser; the copies are not committed.
 
-- **The budget side (verified from our own pipeline data, 2025 actuals):** item 28.89.31 "Hyvinvointialueiden ja HUS-yhtymän sosiaali- ja terveydenhuollon rahoitus" is 26.25 bn, the largest expenditure item. 28.89.32 "Hyvinvointialueiden lisärahoitus" is 0.003 bn. Item 28.90.30 "Valtionosuus kunnille peruspalvelujen järjestämiseen" is 3.38 bn. Together that is about a third of state spending in 2025.
-- **Treasury API "Kuntatalous - v1" (verified by calling it):** listed on https://avoindata.tutkihallintoa.fi/apis as a REST API providing municipal finance data. The developer portal shows one operation, `GET https://api.tutkihallintoa.fi/kuntatalous/v1/taksonomia`, which returns 36 links to dimension files (JSON, on `tkdpprodjrpstacc02.blob.core.windows.net/kuntataloudentaksonomia/`, names like KKTPP, HHTR, HHYTT; the portal warns some are very large). That is the classification, not the figures. **No data operation was seen**, but the OpenAPI definition was not downloaded, so another operation or a different data route cannot be ruled out. Treasury's own text says municipal and wellbeing county finance data is also published on tutkihallintoa.fi and in a "Kuntien ja hyvinvointialueiden taloustietopalvelu" (web search result, not opened). Contact listed: raportointipalvelut@valtiokonttori.fi.
-- **The matched breakdown (listed, contents NOT read):** the Ministry of Finance publishes the state funding per wellbeing services county as Excel files on https://vm.fi/rahoituslaskelmat ("Hyvinvointialueiden rahoitus vuonna 2023 / 2024 / 2025 / 2026", payment-decision versions). Read from that page by a summarising tool, so link text and dates are unconfirmed. Only the 2026 file's link was checked directly: HTTP 200, `.xlsx`, 168,329 bytes. The other three returned HTTP 429 (the server rate-limits) and were not checked. The page states no licence. A web search result gives the ministry's 2025 national total as about 26.2 bn, in line with the 26.25 bn actual above, which is a reason to expect the per-county sums to reconcile, not a check.
-- **Not checked at all:** the Excel layout (does it carry the 2025 per-county totals as a clean table, with the retroactive 2023 adjustment as a separate column?), whether the per-county sums equal the Treasury actual for 28.89.31 in each year, licence and reuse terms, and how the 28.90.30 municipal transfers could be broken down.
+| Year file | Version | Size | SHA-256 |
+|---|---|---|---|
+| 2023 (with one-off correction) | 24.11.2023 | 193,368 B | 65efa8887d8ff6e129f622596cb6267bac2afff6565d03713917acd22f4f98a6 |
+| 2024 | 27.6.2024 | 196,554 B | be8002d44d577f4c566d57f4e5569cf9fc4c897fef830752ecac323d42f8f7ac |
+| 2025 | 24.6.2025 | 132,053 B | 5b361da3b353c565f7bc925104761088322c334e087e5fb0be599b9436ebf177 |
+| 2026 (not needed for 2021 to 2025) | 18.12.2025 | 168,329 B | cd1501229d6ac1848ffa182042501cf15840010eb76f4ff1ad55fa1bced76dd8 |
 
-Reviewer advice (codex-advisor, task 2): confirm the join to recipient allocations for the exact budget line, period and accounting basis before attaching any total; municipal or county accounts and downstream spending are a different level, not additional disjoint coverage; do not add several representations of the same funding to the traced amount.
+URLs are on the ministry page (the `?t=` timestamp parameter is part of the link). Sheets of interest: 2024, 2025 and 2026 have **Yhteenveto**; 2023 has **Kertakorvaus**. Each has a header row starting with `Hyvinvointialuekoodi`, then 22 rows (21 wellbeing services counties plus the City of Helsinki; Vantaa and Kerava are one row), then a row `Manner-Suomi yhteensä`. The sum of the 22 rows equals the stated total in every file (checked, difference under 0.0001 euro).
 
-Links for whoever resumes this: https://vm.fi/rahoituslaskelmat (Excel per year), https://avoindata.tutkihallintoa.fi/apis (Kuntatalous - v1), https://vm.fi/hyvinvointialueiden-talousraportointi and https://vm.fi/talousraportointi (reporting rules). To resume: ask the owner to allow downloading the four `.xlsx` files (one at a time, with pauses), check layout and the reconciliation to 28.89.31, then decide.
+**Columns used.** 2025 and 2024 `Yhteenveto`: col 1 area code, col 2 area name, col 3 population, col 7 "Vuoden YYYY rahoitus yhteensä, euroa" (the year's funding). 2023 `Kertakorvaus`, first table: col 7 "Rahoitus yhteensä 2023", col 11 "Keväällä maksettu ennakkomaksu" (150 M€ advance, April 2023), col 12 "Tammikuussa 2024 tehtävä lisäys/vähennys" (the correction paid in January 2024). Layouts differ between years (header row 6, 7 or 8), so find the header by its text.
+
+**Reconciliation with budget item 28.89.31 "Hyvinvointialueiden ja HUS-yhtymän sosiaali- ja terveydenhuollon rahoitus"** (Treasury actual, from this pipeline's data; the ministry figures are from the files):
+
+| Year | Ministry figure | Treasury actual 28.89.31 | Difference |
+|---|---|---|---|
+| 2025 | 26,252,114,401.26 (2025 funding) | 26,252,114,400.66 | 0.60 € |
+| 2024 | 24,084,008,013.90 (2024 funding) + 531,411,277.46 (January 2024 correction for 2023, from the 2023 file) = 24,615,419,291.36 | 24,615,419,290.83 | 0.53 € |
+| 2023 | 23,168,851,789.12 (2023 funding) | 20,777,000,511.81 (2023) + 1,860,439,999.99 (2022 actual of the same item) + 531,411,277.46 (January 2024 correction) = 23,168,851,789.26 | 0.13 € |
+
+So, for these three years, the Treasury's figure for the item behaves like the payments made in that year (that year's county funding plus corrections paid in it), and the 2023 funding was paid partly in 2022 (1.86 bn), partly in 2023 and partly in January 2024. We have not verified the Treasury's accounting basis for this field (see section 1); the arithmetic only shows that the numbers fit this reading. The January 2024 correction and the April 2023 advance are stated in the ministry's own INFO and Kertakorvaus text. **The 2022 payment of 1.86 bn is not explained in the text I read; it is an inference from the arithmetic matching to 0.13 €.** Item 28.89.32 "Hyvinvointialueiden lisärahoitus" (2.6 M€ actual in 2025) is separate and is not in these files.
+
+**What this means for the app.** A real drill-down is possible: budget item 28.89.31, then the 22 areas, per year. 2025 would be traced to 100% (within 1 euro). For 2024 each county's amount is its 2024 funding plus its own January-2024 correction (both in the files); for 2023 the 2022 part (1.86 bn) cannot be split by county from these files and would stay untraced. This is a recipient-level breakdown of one funding stream, so it replaces, and must not be added to, any other representation of the same money (county accounts, downstream spending), as the reviewer advised. Year-end cash timing (as above) must be shown on the page, not hidden.
+
+**Not checked:** reuse terms (above); whether later payment decisions change earlier years' figures (the files are dated versions); per-county 2022 advance; municipalities and 28.90.30 "Valtionosuus kunnille peruspalvelujen järjestämiseen" (3.38 bn in 2025), which comes from a different source and is not covered here; the Treasury's Kuntatalous API, which exposes only taxonomy files (`GET https://api.tutkihallintoa.fi/kuntatalous/v1/taksonomia` returns 36 links to classification JSON files; the portal showed no data operation, but the OpenAPI definition was not downloaded).
+
+**How a pipeline would work (not started):** vm.fi rate-limits bursts and may also refuse CI runners (untested), so follow the Kela pattern: a manual refresh command parses the workbooks (stdlib only, or add openpyxl), checks that the 22 rows sum to the stated total and that each year reconciles to the Treasury within a stated tolerance, and writes a committed snapshot with each file's URL, size and SHA-256. CI reads the snapshot and still reconciles against the Treasury. Add a pipeline test, a row in the Sources section, and the licence line once the ministry confirms.
 
 ## Decisions (owner's answers, 2026-11-15)
 
