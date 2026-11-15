@@ -7,7 +7,11 @@ module relies on:
   time.
 - Rows are per month, account and unit. Summing `Nettokertymä` over every row
   of a momentti and year gives the actual; summing `Voimassaoleva_talousarvio`
-  gives the valid budget (original plus supplementary).
+  gives the valid budget (original plus supplementary). That `Nettokertymä` is
+  the right "actual for the year" field is NOT settled: for the two benefits
+  checked it equals `Nettokertymä_ko_vuodelta`, so the Kela comparison cannot
+  tell them apart (docs/data-inventory.md section 1). The site shows it as
+  "the sum of the Nettokertymä field" and says the cause of each Kela gap is unverified.
 - Revenue is stored with a negative sign (credit). Revenue main classes are
   11 to 15, expenditure 21 to 36. We flip revenue so every amount reads as a
   positive flow, and keep a `side` column.

@@ -104,7 +104,7 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 ## 4. Supplier payments: Tutkihankintoja invoice data
 
-**Status: confirmed live (sample only; no full year analysed).**
+**Status: confirmed live. First sampled, then the 2024 file was analysed in full (see below); other years not analysed.**
 
 - Dataset: https://avoindata.suomi.fi/data/en_GB/dataset/tutkihankintoja-data (CKAN id `tutkihankintoja-data`, title "Tutkihankintoja.fi-palvelun data (valtion ja kuntien ostolaskut)"). Published by Hansel Oy per the CKAN record. CC BY 4.0. Updated 2026-11-10.
 - Files: `th_data_2016.csv` … `th_data_2026.csv`, one per year, plus `th_kaannokset.xlsx` (translations, 17 KB, not opened). Measured sizes: 2017 is 272 MB, 2024 is 807 MB, 2025 is 826 MB (other years not measured). The plan's "about 275 MB" held only for early years. A CI download of all years is likely several GB; Parquet output will be much smaller.
@@ -199,7 +199,7 @@ The Ministry of Finance's own budget-proposal data (`valtion-talousarvioesitykse
 
 ## Decisions (owner's answers, 2026-11-15)
 
-1. **Treasury and Kela totals differ by about 1%:** accepted. Document the gap, do not hide it. The page shows both figures and the known difference (asumistuki 2024: Treasury €1,696.1 m, Kela €1,676.9 m; opintoraha ja asumislisä: €515.5 m vs €517.7 m). The pipeline test asserts the gap stays under 2% (a proposed number; adjust if it proves too tight or too loose).
+1. **Treasury and Kela totals differ by about 1%:** accepted. Document the gap, do not hide it. The page shows both figures and the known difference (asumistuki 2024: Treasury €1,696.1 m, Kela €1,676.9 m; opintoraha ja asumislisä: €515.5 m vs €517.7 m). (Superseded: the pipeline guard is 5%, after measuring all years 2021 to 2025; see section 2 and the sources page. The 2% here was the first proposal.)
 2. **Grants:** find more sources first, email the organisations only if nothing works. Done so far: STEA turned out to have an official open Excel (section 8). Still open: Tutkiavustuksia, and the other grantors (OKM, Business Finland, Academy of Finland, development aid). To try next: each grantor's own results pages, the Treasury's other public reports, and an email to the State Treasury asking for grant decisions as open data.
 3. **Municipal invoices:** include them "if there is enough data". There is not enough for a municipal picture: the 2024 non-state part is a handful of organisations, mostly Helsinki. Plan: include them as a clearly labelled separate category ("other organisations, partial coverage"), list the organisations covered, never present them as "municipalities", and default the main view to `Valtio`.
 
