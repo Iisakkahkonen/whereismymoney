@@ -34,6 +34,7 @@ export interface Item {
   traced_eur: number;
   untraced_eur: number;
   traced_share: number;
+  reported_eur: number;
   note: string;
   source: string;
 }
@@ -62,7 +63,7 @@ const yearNum = (y: number): number => {
 
 const ITEM_SQL = `
   SELECT b.year, b.momentti, b.code, b.name, b.paaluokka, b.paaluokka_name, b.hallinnonala, b.side,
-         b.budget_eur, b.actual_eur, c.traced_eur, c.untraced_eur, c.traced_share, c.note, c.source
+         b.budget_eur, b.actual_eur, c.traced_eur, c.untraced_eur, c.traced_share, c.reported_eur, c.note, c.source
   FROM budget_items b JOIN coverage c USING (year, momentti)`;
 
 export const spendingItems = (year: number) =>

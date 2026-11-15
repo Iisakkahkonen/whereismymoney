@@ -112,9 +112,9 @@ export async function itemView(root: HTMLElement, ctx: Ctx, momentti: string): P
 
   const cov: HTMLElement[] = [h("h2", {}, t("item.coverage")), meter(it.traced_eur, it.actual_eur, it.traced_share)];
   if (it.traced_eur > 0 && bene) {
-    const gap = Math.abs(it.actual_eur - it.traced_eur);
-    const key = it.traced_eur <= it.actual_eur ? "item.coverage.diff.below" : "item.coverage.diff.above";
-    cov.push(h("p", { class: "muted", id: "coverage-note" }, t(key, { traced: eur(it.traced_eur), actual: eur(it.actual_eur), gap: eur(gap) })));
+    const gap = Math.abs(it.actual_eur - it.reported_eur);
+    const key = it.note === "traced_exceeds_actual" ? "item.coverage.diff.above" : "item.coverage.diff.below";
+    cov.push(h("p", { class: "muted", id: "coverage-note" }, t(key, { traced: eur(it.reported_eur), actual: eur(it.actual_eur), gap: eur(gap) })));
   } else {
     cov.push(h("p", { class: "muted", id: "coverage-note" }, t("item.coverage.none")));
   }

@@ -137,6 +137,7 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
         "traced_eur": [cov[(i.year, i.momentti)].traced_eur for i in items],
         "untraced_eur": [cov[(i.year, i.momentti)].untraced_eur for i in items],
         "traced_share": [cov[(i.year, i.momentti)].traced_share for i in items],
+        "reported_eur": [cov[(i.year, i.momentti)].reported_eur for i in items],
         "note": [cov[(i.year, i.momentti)].note for i in items],
         "source": [next((l.benefit for l in LINKS if l.momentti == i.momentti), "") for i in items],
     }), out / "coverage.parquet", compression="zstd")

@@ -45,3 +45,22 @@ def test_traced_part_below_actual_leaves_the_difference_untraced():
     assert c.traced_eur == pytest.approx(1_676_928_570.45)
     assert c.untraced_eur == pytest.approx(19_171_429.55)
     assert c.traced_share == pytest.approx(0.9887, abs=1e-4)
+    assert c.note == ""
+
+
+def test_source_above_actual_is_capped_flagged_and_still_reported():
+    # 2025 housing allowance: Kela paid more than the Treasury booked.
+    c = coverage.compute_coverage(1_212_431_733.0, 1_227_965_673.0)
+    assert c.traced_eur == pytest.approx(1_212_431_733.0)  # never above the actual
+    assert c.untraced_eur == 0.0  # never negative
+    assert c.traced_share == 1.0
+    assert c.reported_eur == pytest.approx(1_227_965_673.0)  # the source's own figure is kept
+    assert c.note == "traced_exceeds_actual"
+
+
+@pytest.mark.parametrize("actual", [0.0, -5.0])
+def test_non_positive_actual_traces_nothing(actual):
+    c = coverage.compute_coverage(actual, 100.0)
+    assert (c.traced_eur, c.traced_share) == (0.0, 0.0)
+    assert c.untraced_eur >= 0.0
+    assert c.reported_eur == 100.0

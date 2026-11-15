@@ -1,9 +1,9 @@
-"""The coverage meter: how much of a budget item is traced to named data.
+"""The coverage meter: how much of a budget item is broken down further by a second dataset.
 
-Each budget item has an actual amount (State Treasury) and, for a few items, a
-traced amount from a source that says where the money went (for example Kela's
-payments by benefit). The rest is "not traced in public data". The meter must
-never fill a gap with a guess (CLAUDE.md), and never hide a mismatch.
+Every budget item is already shown at budget-item level (State Treasury). For a few
+items a second source says where the money went in more detail, for example Kela's
+payments by benefit and household type. That part is "traced"; the rest is "not
+traced in public data". Nothing is estimated or filled in (CLAUDE.md).
 """
 
 from dataclasses import dataclass
@@ -11,26 +11,25 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Coverage:
-    traced_eur: float  # money matched to a source that says where it went
-    untraced_eur: float  # shown to the reader as "not traced in public data"
-    traced_share: float  # traced_eur / actual_eur, the number on the meter
-    note: str  # "" when nothing odd; otherwise a short code the page can explain
+    traced_eur: float  # part of the actual matched to the second source, never above the actual
+    untraced_eur: float  # actual minus traced, never negative
+    traced_share: float  # traced_eur / actual_eur, between 0 and 1
+    reported_eur: float  # what the second source itself reports, kept unchanged so no gap is hidden
+    note: str  # "" normally; "traced_exceeds_actual" when the source reports more than the Treasury booked
 
 
-def compute_coverage(actual_eur: float, traced_eur: float) -> Coverage:
-    """Combine a budget item's actual with the amount a source traces.
+def compute_coverage(actual_eur: float, reported_eur: float) -> Coverage:
+    """Combine a budget item's actual with the amount a second source reports.
 
-    Edge cases the rule must settle (they all occur in real data):
-    - No source at all: traced_eur is 0, so the whole item is untraced.
-    - Traced is a little below actual (asumistuki 2024: Kela 1,676.9 m vs
-      Treasury 1,696.1 m): the difference is shown as untraced.
-    - Traced is a little ABOVE actual (opintotuki 2024: Kela 517.7 m vs
-      Treasury 515.5 m): untraced would be negative and the share above 100%.
-    - Actual is zero or negative (some items net to nothing): a share is
-      undefined.
+    - No source, or an actual that is zero or negative: nothing is traced.
+    - Source below actual: the difference stays untraced.
+    - Source above actual (the two measure differently, for example 2025 housing
+      allowance, Kela 1.228 bn vs Treasury 1.212 bn): traced is capped at the actual,
+      the item is fully traced, and the overage is flagged and still shown as reported.
     """
-    # TODO(human): replace this placeholder with the rule for the edge cases above.
-    traced = max(0.0, traced_eur)
-    untraced = actual_eur - traced
-    share = traced / actual_eur if actual_eur > 0 else 0.0
-    return Coverage(traced, untraced, share, "")
+    reported = max(0.0, reported_eur)
+    if actual_eur <= 0 or reported == 0.0:
+        return Coverage(0.0, max(0.0, actual_eur), 0.0, reported, "")
+    traced = min(reported, actual_eur)
+    note = "traced_exceeds_actual" if reported > actual_eur else ""
+    return Coverage(traced, actual_eur - traced, traced / actual_eur, reported, note)

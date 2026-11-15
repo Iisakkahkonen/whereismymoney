@@ -110,10 +110,22 @@ def test_search_result_opens_item_with_coverage_and_sources(page):
     assert page.errors == []
 
 
+def test_source_above_actual_shows_full_share_and_the_real_difference(page, manifest):
+    """2025 housing allowance: Kela reports more than the Treasury booked. The meter caps at 100%
+    and the page still says how much more Kela reports, so the gap is shown, not hidden."""
+    if 2025 not in manifest["years"]:
+        pytest.skip("needs 2025")
+    page.goto(page.url.split("#")[0] + "#/item/331054?year=2025")
+    page.wait_for_selector("body[data-ready='item']")
+    expect(page.locator(".meter")).to_have_attribute("aria-label", __import__("re").compile(r"100"))
+    expect(page.locator("#coverage-note")).to_contain_text("more than the")
+    assert "101" not in page.locator(".card").nth(1).inner_text()
+
+
 def test_item_without_a_source_says_it_is_not_traced(page):
     page.goto(page.url.split("#")[0] + "#/item/110101")  # a revenue item: income and capital taxes
     page.wait_for_selector("body[data-ready='item']")
-    expect(page.locator("#coverage-note")).to_contain_text("All of it is shown as not traced")
+    expect(page.locator("#coverage-note")).to_contain_text("budget-item level only")
 
 
 def test_unknown_item_is_handled(page):
