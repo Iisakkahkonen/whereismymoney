@@ -14,7 +14,7 @@ import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from . import AmbiguousSeries
@@ -208,7 +208,7 @@ def raw_path(benefit: str, year: int, cache: Path) -> Path:
     """Where a raw file is kept. The resource id is in the name, so a changed resource can never
     be mistaken for the old file."""
     _dataset, resources, prefix, _agg = SOURCES[benefit]
-    return cache / "kela" / f"{prefix}_{year}_{resources[year][:8]}.csv"
+    return cache / "kela" / f"{prefix}_{year}_{resources[year]}.csv"
 
 
 def download_and_aggregate(benefit: str, year: int, cache: Path, refresh: bool = True) -> tuple[KelaYear, dict]:
@@ -285,8 +285,10 @@ def _validate_entry(name: str, e: dict) -> None:
         raise ValueError(f"{name} {key}: sha256 is not a 64-character hex digest")
     if not (_is_int(e["bytes"]) and e["bytes"] > 0):
         raise ValueError(f"{name} {key}: bytes must be a positive integer")
-    if not (isinstance(e["retrieved_at"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", e["retrieved_at"])):
-        raise ValueError(f"{name} {key}: retrieved_at must be an ISO date")
+    try:
+        date.fromisoformat(e["retrieved_at"])
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} {key}: retrieved_at must be a real ISO date (YYYY-MM-DD)") from None
 
 
 def load_snapshot(path: Path = SNAPSHOT) -> dict[tuple[str, int], tuple[KelaYear, dict]]:

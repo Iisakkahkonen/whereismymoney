@@ -59,9 +59,15 @@ def test_fetch_reuses_the_cache_only_when_asked_to(tmp_path, network):
     assert network["calls"] == []  # offline mode makes no request at all
 
 
-def test_offline_mode_still_downloads_a_file_that_is_missing(tmp_path, network):
+@pytest.mark.parametrize("planted", [None, b""])
+def test_offline_mode_never_downloads_and_names_the_missing_file(tmp_path, network, planted):
+    dest = tmp_path / "x.csv"
+    if planted is not None:
+        dest.write_bytes(planted)  # an empty file counts as missing
     network["served"]["u"] = b"new"
-    assert http.fetch("u", tmp_path / "x.csv", refresh=False).read_bytes() == b"new"
+    with pytest.raises(http.CacheMiss, match="x.csv"):
+        http.fetch("u", dest, refresh=False)
+    assert network["calls"] == []  # offline means no request, not even a fallback
 
 
 def test_a_failed_refresh_keeps_the_old_file_and_raises(tmp_path, network):
@@ -91,9 +97,9 @@ def test_treasury_requests_refresh_by_default_and_honour_offline_mode(tmp_path, 
     assert seen[2:] == [False, False]
 
 
-def test_kela_raw_file_name_carries_the_resource_id(tmp_path):
+def test_kela_raw_file_name_carries_the_full_resource_id(tmp_path):
     a = kela.raw_path("asumistuki", 2025, tmp_path)
-    assert kela.ASUMISTUKI_RESOURCES[2025][:8] in a.name
+    assert kela.ASUMISTUKI_RESOURCES[2025] in a.name
     # A different resource for the same benefit and year can never reuse the old file's name.
     assert a != kela.raw_path("asumistuki", 2024, tmp_path)
 
@@ -129,3 +135,25 @@ def test_build_notes_say_whether_treasury_data_was_fetched_or_reused(tmp_path, m
         with pytest.raises(StopIteration):
             build.build(tmp_path / "c", tmp_path / "o", [2025], use_cache=use_cache)
     assert seen == [True, False]
+
+
+def test_treasury_offline_with_an_empty_cache_stops_before_any_request(tmp_path, network):
+    with pytest.raises(http.CacheMiss):
+        build.build(tmp_path / "cache", tmp_path / "out", [2025], use_cache=True)
+    assert network["calls"] == []
+
+
+def test_treasury_offline_with_a_partly_filled_cache_stops_before_any_request(tmp_path, network):
+    # The class list is cached, but the events file for the class is not: mixed input must not fall back to the network.
+    (tmp_path / "cache" / "treasury").mkdir(parents=True)
+    (tmp_path / "cache" / "treasury" / "paaluokat.csv").write_text("Vuosi,Tunnus\n2025,21\n", encoding="utf-8")
+    with pytest.raises(http.CacheMiss, match="events_2025_21"):
+        build.build(tmp_path / "cache", tmp_path / "out", [2025], use_cache=True)
+    assert network["calls"] == []
+
+
+def test_kela_recompute_with_a_missing_raw_file_stops_before_any_request(tmp_path, network):
+    with pytest.raises(http.CacheMiss, match="asumistuki_2025"):
+        build.kela_inputs("recompute", tmp_path / "cache", [2025], tmp_path / "kela.json")
+    assert network["calls"] == []
+    assert not (tmp_path / "kela.json").exists()  # a failed recompute must not write a snapshot

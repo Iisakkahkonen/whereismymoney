@@ -25,10 +25,11 @@ YEARS = [2021, 2022, 2023, 2024, 2025]
 
 # Owner decision 2026-11-15: the gap between the Treasury's actuals and Kela's
 # statistics is accepted and shown on the page. Measured 2021 to 2025: student
-# aid within 0.6%, housing allowance between -3.4% and +1.3% (the Treasury books
-# round transfers, so year-end timing differs). A wrong filter is off by multiples
-# (7 to 36 times in Phase 0), so the build fails only beyond this, which would
-# point to a wrong filter or a source change, not to ordinary timing.
+# aid within 0.6%, housing allowance between -3.4% and +1.3%. The cause of the
+# gaps is not verified (payment timing and which payments each source counts
+# are possible reasons). A wrong filter is off by multiples (7 to 36 times in
+# Phase 0), so the build fails only beyond this, which would point to a wrong
+# filter or a source change, not to an ordinary gap.
 RECONCILIATION_TOLERANCE = 0.05
 
 

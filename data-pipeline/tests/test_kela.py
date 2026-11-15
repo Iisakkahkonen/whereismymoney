@@ -178,6 +178,7 @@ def test_snapshot_stops_on_unknown_schema(tmp_path):
     {"sha256": "xyz"},
     {"bytes": 0},
     {"retrieved_at": "yesterday"},
+    {"retrieved_at": "2026-13-45"},  # date-shaped but not a real date
     {"resource_id": "some-other-resource"},
     {"source_url": "https://example.test/x.csv"},
 ])
