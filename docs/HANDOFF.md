@@ -1,53 +1,62 @@
-# whereismymoney: handoff note for the Claude Code session
+# whereismymoney: handoff note
 
-Written 2026-11-15, from the web chat. Read this first, then `PLAN.md` (the full plan, data inventory and sources).
+First written 2026-11-15 from the web chat; rewritten the same day after Phase 0 and Phase 1. Read this first, then `PLAN.md` (plan, status, data inventory) and `data-inventory.md` (what each source really looks like). Whoever picks this up next (Claude Code or Codex): this note is meant to be enough to continue without asking.
 
 ## Who and what
-Iisak Kähkönen is building `whereismymoney`, one of the projects in his Vibecoding Portfolio: a public, open source web app for browsing where Finland's public money comes from and where it goes, as deep as the public data allows (benefits, grants to organisations, payments to companies), with real search and filters. Every portfolio project is independent and has its own repo. It is meant to show employers how he works with AI, so how it was built and what he decided are part of the deliverable. He sets the direction and makes the decisions; Claude does the mechanical work.
+Iisak Kähkönen is building `whereismymoney`, one of the projects in his Vibecoding Portfolio: a public, open source web app for browsing where Finland's public money comes from and where it goes. Every portfolio project is independent and has its own repo. It is meant to show employers how he works with AI, so how it was built and what he decided are part of the deliverable. He sets the direction and makes the decisions; the AI does the mechanical work. Keep replies short and plain. He gets frustrated by long caveats and over-careful framing; say what is true and what is next.
 
-## State of things
-**Update 2026-11-15 (Claude Code session): Phase 0 is done and waiting for the owner's review.** The result is `docs/data-inventory.md`, with fixtures in `data-pipeline/samples/` and a small re-check script in `data-pipeline/recon/`. Read the inventory before starting Phase 1. The owner answered the three open questions (end of the inventory): the roughly 1% Treasury-to-Kela gap is accepted and documented, non-state invoice data is included as a separate partial-coverage category, and grants sources are still being searched (STEA has an official open Excel; Tutkiavustuksia and other grantors do not yet). The older notes below describe the state before Phase 0.
+## The idea, in his words
+"The whole idea is to get all of the spending covered so I can see where the money is going." The site is a drill-down: ministry, then budget item, then the breakdown inside it (for example Kela housing allowance, one step below Kela). Every budget item is shown (100% of state spending). The part that a second dataset breaks down further is the "traced" share, and it must grow as sources are added. Today it is about 2% (2025). 100% is not reachable (confidential purchases and individual payments are not published); the remainder is shown honestly as "not traced".
 
-- Repo: https://github.com/iisakkahkonen/whereismymoney, public, Apache 2.0, Python .gitignore. This commit adds the README stub, `CLAUDE.md`, and these docs.
-- Nothing is built. No code, no data, no CI.
-- The plan and decisions are in `PLAN.md`. The data research was done in a web chat session that could not reach the sites directly, so no endpoint or file has been tested. Everything marked "verify" in the plan is unchecked.
+## State of things (2026-11-15)
+- Repo: https://github.com/Iisakkahkonen/whereismymoney, public, Apache 2.0. Everything below is on `main`.
+- **Phase 0 (data recon): done.** `data-inventory.md` has nine sources, traps, and the owner's decisions.
+- **Phase 1 (thin vertical slice): built and merged.** Budget items 2021 to 2025 (State Treasury API), Kela housing allowance and student aid traced against their budget items, search (EN/FI), year selector, treemap and charts (ECharts), coverage meter, sources page with every Kela-to-Treasury gap. Tests: 30 pipeline tests, an EN/FI parity check, a TypeScript check, 13 headless browser tests.
+- **Deploy: not working yet.** The first CI run failed because `avoindata.suomi.fi` answers 403 to GitHub Actions runners (the same URL works from a home connection). Fixed in commit `17aaf6b`: CI no longer downloads Kela files. It reads `data-pipeline/snapshots/kela.json`, the checked aggregates plus each raw file's URL, SHA-256, size and download date, and still reconciles against the Treasury. **That fix has not been seen running in CI yet.** Check the Actions run first.
+- **Owner action still needed:** repo Settings, Pages, Source = "GitHub Actions". Without it the deploy job fails after the build passes.
+- Known and accepted: Kela figures refresh only by hand (see below); the monthly cron refreshes Treasury data only. DuckDB-WASM costs about 8 MB gzipped on first load. The Treasury API licence and the StatFin licence are unconfirmed.
+
+## How to work on it
+```bash
+pip install pyarrow requests pytest playwright
+python -m pytest data-pipeline                      # from the repo root
+cd data-pipeline && python -m wimm.build --cache cache --out ../web/public/data   # Kela from the snapshot
+cd ../web && npm ci && npm run check:i18n && npx tsc --noEmit && npm run build
+cd .. && python -m playwright install chromium && python -m pytest e2e
+```
+- **Refresh Kela** (run from a normal connection, not CI): `python -m wimm.build --kela download`. Downloads about 1.5 GB into `data-pipeline/cache/` (git-ignored), re-aggregates, rewrites `snapshots/kela.json`. Review the diff and commit it. If a year or file changes, the reconciliation guard (5%) tells you if a filter broke.
+- A test (`test_committed_snapshot_is_valid_and_covers_every_year`) fails if the snapshot is missing a benefit or year in `YEARS`. Adding a year means: add its Kela resource ids in `kela.py`, add it to `YEARS` in `build.py`, run the download refresh.
+- Windows notes from the first sessions: use `sys.stdout.reconfigure(encoding="utf-8")` for Finnish text in scripts; the dev machine has about 6.8 GB RAM, so a full build next to a dev server can run out of memory (the Kela duplicate check keeps hashes, not keys, for that reason); the first e2e run can flake on page-load timeouts when memory is tight, rerun the single test before suspecting code.
+- Where things are: `data-pipeline/wimm/` (`treasury.py`, `kela.py`, `coverage.py`, `build.py`), `data-pipeline/tests/`, `data-pipeline/samples/` (small fixtures), `data-pipeline/recon/` (re-check scripts), `web/src/` (`db.ts` DuckDB, `data.ts` queries, `views.ts`, `charts.ts`, `i18n.ts`), `e2e/test_site.py`, `.github/workflows/deploy.yml`.
 
 ## Decisions already made
-- Web app, usable on any device.
-- Stack: Vite + TypeScript, like the Finland vs. EU dashboard. Python pipeline for data.
-- No backend at the start; a scheduled CI build precomputes the data, and the browser queries Parquet files (DuckDB-WASM). The owner is open to a backend if it is really needed; revisit at Phase 5 (supplier invoices). Don't build one before then.
+- Web app, any device. Vite + TypeScript, Python pipeline, Parquet queried in the browser with DuckDB-WASM. No backend until Phase 5 (supplier invoices) at the earliest.
+- Chart library: ECharts (treemap now, Sankey later). Decided in Phase 1.
 - Scope: as broad and low-level as the data allows, state money first. Municipalities and wellbeing counties only where the state sends them money for a specific purpose.
-- Year or range selection if possible; otherwise latest data first.
-- Looks clean and restrained, bilingual EN/FI, mobile friendly.
-- The main feature: a coverage meter on each budget item showing how much is traced to named recipients and how much is "not traced in public data".
+- Coverage rule (owner: keep it simple): traced is capped at the actual and never negative; the source's own figure is kept and any overage is flagged.
+- Treasury-vs-Kela gap (about 1%, up to 3.4% for housing allowance in 2023): accepted, documented and published, build fails above 5%.
+- Municipal invoice data: include as a separate, partial-coverage category if the data is enough.
+- Grants: find more sources before contacting anyone. STEA has an official open Excel (confirmed). Tutkiavustuksia and other grantors have no bulk file found yet; email the State Treasury only if nothing works.
+- Ship first, then deepen: add the biggest breakdowns one at a time.
 
-## Open choices
-- Chart library: Chart.js (used in the dashboard) vs. ECharts or D3 for treemap/Sankey views. Proposal: ECharts for the flow views. Decide in Phase 1.
+## Next steps
+1. Confirm the CI run on `main` is green after the snapshot fix; ask the owner to set Pages to "GitHub Actions" if the deploy job is the only failure.
+2. Pick the first deepening source. The owner was asked "Start with wellbeing county and municipal transfers?" and has not answered. The case for it: the largest block (item 28.89.31 alone is about 24.6 bn in 2023 and later). Not checked yet: the Treasury's Kuntatalous API (same portal, https://avoindata.tutkihallintoa.fi/apis). Other candidates: pensions (item 28.50.15, 5.5 bn) and other Kela benefits, STEA grants (source confirmed), supplier invoices (Phase 5).
+3. For any new source, follow the rules below: confirm URL, fields and filters against the live source, add a pipeline test and a Sources row, only then call it done. If its host blocks CI, use the same committed-snapshot pattern as Kela.
 
-## What to do first (Phase 0, then Phase 1)
-1. **Phase 0, data recon (time-boxed):** from the owner's machine, where the sites can be reached, download a small sample of each source and write down the real schema, licence and current URL in `docs/data-inventory.md`:
-   - budjetti.vm.fi budget CSV/XML (link in the plan is from 2015; find the current one via Avoindata.fi)
-   - State Treasury APIs (avoindata.tutkihallintoa.fi): budget and actuals
-   - Kela open data: general housing allowance expenditure, student financial aid (avoindata.suomi.fi)
-   - STEA grants (avustukset.stea.fi) and Tutkiavustuksia.fi: is there bulk data or an API?
-   - Tutkihankintoja invoice data (one yearly file is enough for the sample)
-   - StatFin tables 12a6, 11zf, 15ah (identifiers changed on 2026-06-08)
-   - The open company register, for matching business IDs to organisation names
-   - Tax Administration open data on tax revenue
-2. **Phase 1, thin vertical slice:** budget items + asumistuki and opintotuki + a working search bar + year selector, tested and deployed to GitHub Pages through Actions. Do this before adding volume.
-
-## Rules to keep (from the dashboard project)
-- No dataset counts as done until its URL, fields and filters are confirmed against the live source, it has a pipeline test and a row in the Sources section. The dashboard's first commit had three wrong dataset codes.
-- The build must stop if a series is ambiguous (for example more than one value per key and year). That check caught a real bug in the dashboard.
-- Tests gate every deploy (pytest for the pipeline, a headless browser test for the UI).
-- Never cut: source links for every number, the coverage meter, the methodology and "what is not covered" page, tests that totals reconcile with the budget, licence credits (Kela requires attribution; its data is CC BY 4.0).
-- Commit history is part of the case study, so commit in small steps with clear messages.
+## Rules to keep
+- No dataset counts as done until its URL, fields and filters are confirmed against the live source, it has a pipeline test and a row in the Sources section.
+- The build must stop if a series is ambiguous (more than one value per key and year).
+- Tests gate every deploy (pytest, the parity check, the type check, a headless browser test).
+- Never cut: source links for every number, the coverage meter, the methodology and "what is not covered" page, tests that totals reconcile with the budget, licence credits (Kela requires attribution; CC BY 4.0).
+- EN/FI parity for all UI text. Small commits with clear messages: the history is part of the case study.
+- Never fill in missing data or guess recipients; show gaps as gaps.
 
 ## Things to be careful about
-- Kela data is aggregates only, never individuals, and groups under four people are suppressed. Never try to identify or re-identify anyone.
-- Don't fill in missing values or guess recipients; show gaps as gaps.
+- Kela data is aggregates only, never individuals, and groups under four people are suppressed. Never try to identify anyone.
+- Kela cubes hold rollup rows and several time grains; only the filters in `kela.py` give the right total. A plain sum is 7 to 36 times too high.
 - Confidential state purchases are not in the invoice data; say so on the page.
-- The national procurement repository (all public sector invoices) starts in 2027; it's not a dependency.
+- The national procurement repository (all public sector invoices) starts in 2027; it is not a dependency.
 
 ## Reporting back
-When a phase is done, update the status section of `PLAN.md` (as in the dashboard plan) and tell the owner what changed and what is next. The owner also wants a case study at the end, in the same style as the dashboard's, with a "What I learned" section in his own words.
+When a phase or source is done, update the status section of `PLAN.md` and this note, and tell the owner what changed and what is next. At the end the owner wants a case study in the style of the dashboard's, with a "What I learned" section in his own words.

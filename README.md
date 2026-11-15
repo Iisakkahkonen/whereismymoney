@@ -8,17 +8,20 @@ Status: Phase 1 (thin vertical slice). The state budget's actual spending for 20
 
 ## How it works
 
-- `data-pipeline/` (Python): fetches the sources, runs the data checks (the build stops on ambiguous rows, on totals that do not add up, and on a Kela-to-budget gap above 2 percent), and writes Parquet files, a search index and a manifest.
+- `data-pipeline/` (Python): fetches the sources, runs the data checks (the build stops on ambiguous rows, on totals that do not add up, and on a Kela-to-budget gap above 5 percent), and writes Parquet files, a search index and a manifest. Kela figures come from `data-pipeline/snapshots/kela.json` (checked aggregates with each raw file's URL and SHA-256), because the Kela host refuses CI runners.
 - `web/` (Vite, TypeScript): a static site. The browser queries the Parquet files with DuckDB-WASM, draws charts with ECharts and searches with MiniSearch. No backend.
 - `e2e/` (Python, Playwright): headless browser tests against the built site.
-- `.github/workflows/deploy.yml`: runs every test, then deploys to GitHub Pages. It also runs monthly, because Kela updates its statistics monthly.
+- `.github/workflows/deploy.yml`: runs every test, then deploys to GitHub Pages. It also runs monthly to pick up new Treasury actuals; Kela is refreshed by hand (see below).
 
 ## Run it locally
 
 ```bash
-# 1. Build the data (downloads about 1.5 GB of Kela files the first time, cached in data-pipeline/cache)
+# 1. Build the data (Kela from the committed snapshot, Treasury from the API)
 pip install pyarrow requests pytest
 cd data-pipeline && python -m pytest && python -m wimm.build --out ../web/public/data
+
+# 1b. Refresh the Kela snapshot (downloads about 1.5 GB, cached in data-pipeline/cache; run on a normal connection)
+python -m wimm.build --kela download --out ../web/public/data
 
 # 2. Run the site
 cd ../web && npm install && npm run dev
