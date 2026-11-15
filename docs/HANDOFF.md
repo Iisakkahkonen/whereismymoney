@@ -12,8 +12,8 @@ Iisak Kähkönen is building `whereismymoney`, one of the projects in his Vibeco
 - Repo: https://github.com/Iisakkahkonen/whereismymoney, public, Apache 2.0. Everything below is on `main`.
 - **Phase 0 (data recon): done.** `data-inventory.md` has nine sources, traps, and the owner's decisions.
 - **Phase 1 (thin vertical slice): built and merged.** Budget items 2021 to 2025 (State Treasury API), Kela housing allowance and student aid traced against their budget items, search (EN/FI), year selector, treemap and charts (ECharts), coverage meter, sources page with every Kela-to-Treasury gap. Tests: 30 pipeline tests, an EN/FI parity check, a TypeScript check, 13 headless browser tests.
-- **Deploy: not working yet.** The first CI run failed because `avoindata.suomi.fi` answers 403 to GitHub Actions runners (the same URL works from a home connection). Fixed in commit `17aaf6b`: CI no longer downloads Kela files. It reads `data-pipeline/snapshots/kela.json`, the checked aggregates plus each raw file's URL, SHA-256, size and download date, and still reconciles against the Treasury. **That fix has not been seen running in CI yet.** Check the Actions run first.
-- **Owner action still needed:** repo Settings, Pages, Source = "GitHub Actions". Without it the deploy job fails after the build passes.
+- **Deploy: working (owner-reported 2026-11-15).** The first CI run failed because `avoindata.suomi.fi` answers 403 to GitHub Actions runners (the same URL works from a home connection). Fixed in commit `17aaf6b`: CI no longer downloads Kela files. It reads `data-pipeline/snapshots/kela.json`, the checked aggregates plus each raw file's URL, SHA-256, size and download date, and still reconciles against the Treasury. The owner then set the repo's Pages source to "GitHub Actions" and says the site now deploys. The builder has no access to CI results from its host and has not opened the live site, so that is reported, not independently verified.
+- Roles in the agent bridge room "whereismymoney workshop": `sonnet-builder` (Claude Code) implements and maintains the docs; `codex-advisor` (Codex) reviews correctness, data interpretation, coverage and reconciliation logic, tests and next steps, read-only on implementation files. The owner decides scope and settles disagreements.
 - Known and accepted: Kela figures refresh only by hand (see below); the monthly cron refreshes Treasury data only. DuckDB-WASM costs about 8 MB gzipped on first load. The Treasury API licence and the StatFin licence are unconfirmed.
 
 ## How to work on it
@@ -40,8 +40,8 @@ cd .. && python -m playwright install chromium && python -m pytest e2e
 - Ship first, then deepen: add the biggest breakdowns one at a time.
 
 ## Next steps
-1. Confirm the CI run on `main` is green after the snapshot fix; ask the owner to set Pages to "GitHub Actions" if the deploy job is the only failure.
-2. Pick the first deepening source. The owner was asked "Start with wellbeing county and municipal transfers?" and has not answered. The case for it: the largest block (item 28.89.31 alone is about 24.6 bn in 2023 and later). Not checked yet: the Treasury's Kuntatalous API (same portal, https://avoindata.tutkihallintoa.fi/apis). Other candidates: pensions (item 28.50.15, 5.5 bn) and other Kela benefits, STEA grants (source confirmed), supplier invoices (Phase 5).
+1. Get a review of the Phase 1 data logic (coverage rule, reconciliation guard, Kela snapshot) from the reviewer before building on it.
+2. Pick the first deepening source (needs the owner's answer). The owner was asked "Start with wellbeing county and municipal transfers?" and has not answered. The case for it: the largest block (item 28.89.31 alone is about 24.6 bn in 2023 and later). Not checked yet: the Treasury's Kuntatalous API (same portal, https://avoindata.tutkihallintoa.fi/apis). Other candidates: pensions (item 28.50.15, 5.5 bn) and other Kela benefits, STEA grants (source confirmed), supplier invoices (Phase 5).
 3. For any new source, follow the rules below: confirm URL, fields and filters against the live source, add a pipeline test and a Sources row, only then call it done. If its host blocks CI, use the same committed-snapshot pattern as Kela.
 
 ## Rules to keep
