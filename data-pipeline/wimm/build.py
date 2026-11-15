@@ -83,12 +83,38 @@ def search_docs(items: list, links: list) -> list[dict]:
     return docs
 
 
-def build(cache: Path, out: Path, years: list[int]) -> dict:
+def kela_inputs(mode: str, cache: Path, years: list[int], snapshot: Path) -> dict:
+    """Kela figures per (benefit, year), with where each came from.
+
+    "snapshot" reads the committed aggregates (what CI does: the raw files are
+    1.5 GB and the host refuses the CI runners). "download" fetches the raw
+    files, re-aggregates, and rewrites the snapshot for the years asked for."""
+    wanted = [(l.benefit, y) for l in LINKS for y in years]
+    if mode == "download":
+        stored = kela.load_snapshot(snapshot) if snapshot.exists() else {}
+        stored.update({key: kela.download_and_aggregate(*key, cache) for key in wanted})
+        kela.save_snapshot(stored, snapshot)
+        return {key: stored[key] for key in wanted}
+    stored = kela.load_snapshot(snapshot)
+    missing = [key for key in wanted if key not in stored]
+    if missing:
+        raise AssertionError(f"Kela snapshot has no data for {missing}; run the build with --kela download on a normal connection")
+    return {key: stored[key] for key in wanted}
+
+
+def build(cache: Path, out: Path, years: list[int], kela_mode: str = "snapshot", snapshot: Path = kela.SNAPSHOT) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
     items = [it for y in years for it in treasury.load_year(y, cache, notes)]
-    kela_years = {(l.benefit, y): (kela.load_asumistuki if l.benefit == "asumistuki" else kela.load_opintotuki)(y, cache)
-                  for l in LINKS for y in years}
+    kela_data = kela_inputs(kela_mode, cache, years, snapshot)
+    kela_years = {key: k for key, (k, _) in kela_data.items()}
+    kela_files = [{"benefit": b, "year": y, **prov} for (b, y), (_, prov) in sorted(kela_data.items())]
+    dates = sorted({f["retrieved_at"] for f in kela_files})
+    notes.append(
+        f"Kela figures come from {len(kela_files)} source files downloaded {dates[0]}"
+        + (f" to {dates[-1]}" if dates[-1] != dates[0] else "")
+        + ", aggregated and checked, and stored in data-pipeline/snapshots/kela.json with each file's SHA-256."
+    )
 
     check_budget_balances(items, years)
     actual = {(it.year, it.momentti): it.actual_eur for it in items}
@@ -153,6 +179,7 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
                       "source_url": l.kela_page} for l in LINKS],
         "checks": {f"{b} {y}": k.checks for (b, y), k in sorted(kela_years.items())},
         "notes": notes,
+        "kela_files": kela_files,
         "sources": [
             {"id": "treasury", "name": "State Treasury, Valtion talous API (budget and actuals)",
              "url": "https://avoindata.tutkihallintoa.fi/apis", "licence": "State Treasury open data (licence to be confirmed)"},
@@ -170,8 +197,10 @@ def main() -> None:
     ap.add_argument("--cache", type=Path, default=Path("cache"))
     ap.add_argument("--out", type=Path, default=Path("../web/public/data"))
     ap.add_argument("--years", type=int, nargs="+", default=YEARS)
+    ap.add_argument("--kela", choices=["snapshot", "download"], default="snapshot",
+                    help="snapshot: use the committed aggregates (CI). download: fetch the raw Kela files and refresh them.")
     a = ap.parse_args()
-    m = build(a.cache, a.out, a.years)
+    m = build(a.cache, a.out, a.years, a.kela)
     print(f"built {m['counts']} for {m['years']} at {m['generated_at']}")
 
 

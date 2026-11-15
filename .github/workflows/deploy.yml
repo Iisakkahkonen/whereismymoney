@@ -9,7 +9,7 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    - cron: "0 6 21 * *" # Kela updates its statistics monthly by the 20th
+    - cron: "0 6 21 * *" # picks up new Treasury actuals; Kela is refreshed by hand (see below)
   workflow_dispatch:
 
 permissions:
@@ -36,15 +36,18 @@ jobs:
       - name: Pipeline tests
         run: python -m pytest data-pipeline -q
 
-      # The Kela files are 100 to 300 MB each; keep them between runs.
+      # Treasury data is fetched here. Kela data is NOT: avoindata.suomi.fi answers
+      # 403 to these runners, so the build reads the committed, checked aggregates in
+      # data-pipeline/snapshots/kela.json. Refresh them from a normal connection with
+      #   python -m wimm.build --kela download
       - name: Restore download cache
         uses: actions/cache@v4
         with:
           path: data-pipeline/cache
-          key: pipeline-cache-${{ hashFiles('data-pipeline/wimm/kela.py') }}
+          key: pipeline-cache-${{ hashFiles('data-pipeline/wimm/treasury.py') }}
           restore-keys: pipeline-cache-
 
-      - name: Build data (fetches sources, runs all data checks)
+      - name: Build data (fetches Treasury, reads Kela snapshot, runs all data checks)
         working-directory: data-pipeline
         run: python -m wimm.build --cache cache --out ../web/public/data
 

@@ -64,3 +64,13 @@ def test_non_positive_actual_traces_nothing(actual):
     assert (c.traced_eur, c.traced_share) == (0.0, 0.0)
     assert c.untraced_eur >= 0.0
     assert c.reported_eur == 100.0
+
+
+def test_snapshot_mode_never_downloads_and_names_the_missing_year(tmp_path):
+    import json
+    from wimm import build as b
+    snap = tmp_path / "kela.json"
+    snap.write_text(json.dumps({"schema": 1, "entries": []}), encoding="utf-8")
+    # Cache dir is empty and unreachable on purpose: snapshot mode must fail from the file alone.
+    with pytest.raises(AssertionError, match="--kela download"):
+        b.kela_inputs("snapshot", tmp_path / "no-cache", [2025], snap)

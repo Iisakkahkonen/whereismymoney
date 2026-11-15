@@ -191,6 +191,7 @@ export function sourcesView(root: HTMLElement, ctx: Ctx): void {
         ),
       ),
       h("p", { class: "muted" }, t("sources.attribution")),
+      kelaFiles(ctx.manifest),
     ),
     h("section", { class: "card" }, h("h2", {}, t("sources.coverage.title")), h("p", {}, t("sources.coverage.text"))),
     h("section", { class: "card" }, h("h2", {}, t("sources.gaps.title")), h("p", {}, t("sources.gaps.text"))),
@@ -205,6 +206,18 @@ export function sourcesView(root: HTMLElement, ctx: Ctx): void {
     h("p", { class: "muted" }, `${t("sources.generated")}: ${ctx.manifest.generated_at}`),
   );
   document.title = `${t("sources.title")} · ${t("app.title")}`;
+}
+
+function kelaFiles(m: Manifest): HTMLElement {
+  const names = new Map(m.benefits.map((b) => [b.key, lang() === "fi" ? b.name_fi : b.name_en]));
+  const dates = [...new Set(m.kela_files.map((f) => f.retrieved_at))].sort();
+  const date = dates.length > 1 ? `${dates[0]} – ${dates[dates.length - 1]}` : (dates[0] ?? "");
+  return h(
+    "div",
+    { id: "kela-files" },
+    h("p", { class: "muted" }, t("sources.kela.files", { date })),
+    h("ul", { class: "list" }, ...m.kela_files.map((f) => h("li", {}, link(f.source_url, `${names.get(f.benefit) ?? f.benefit} ${f.year}`)))),
+  );
 }
 
 function reconciliationTable(m: Manifest): HTMLElement {

@@ -1,0 +1,295 @@
+{
+ "entries": [
+  {
+   "benefit": "asumistuki",
+   "bytes": 298875367,
+   "checks": [
+    "yearly, monthly and quarterly rows give the same total",
+    "household-type parts add up to the total",
+    "life-situation parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "elamantilanne": {
+     "Eläkkeensaajaruokakunnat": 2622065211,
+     "Muut ruokakunnat": 11754763924,
+     "Opiskelijaruokakunnat": 63253357263,
+     "Työssä olevat ruokakunnat": 22433271925,
+     "Työttömät ruokakunnat": 59014025835
+    }
+   },
+   "resource_id": "452a5e9b-5158-4c46-928a-e019a6d04b49",
+   "retrieved_at": "2026-11-15",
+   "sha256": "5f1f52f1ea4c46d08228a02adccd9f50dc57cdeca5b8815a0a6c195d11988218",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/f80f3deb-5742-4fc3-bab9-16e180cfb6c1/resource/452a5e9b-5158-4c46-928a-e019a6d04b49/download/data_2021.csv",
+   "total_cents": 159077484158,
+   "unknown_municipality_cents": -3709041345,
+   "year": 2021
+  },
+  {
+   "benefit": "asumistuki",
+   "bytes": 293614072,
+   "checks": [
+    "yearly, monthly and quarterly rows give the same total",
+    "household-type parts add up to the total",
+    "life-situation parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "elamantilanne": {
+     "Eläkkeensaajaruokakunnat": 2527521491,
+     "Muut ruokakunnat": 12238876217,
+     "Opiskelijaruokakunnat": 63766286836,
+     "Työssä olevat ruokakunnat": 24428346810,
+     "Työttömät ruokakunnat": 53539768875
+    }
+   },
+   "resource_id": "8738a30b-cf24-4015-9c36-03bfa3a44568",
+   "retrieved_at": "2026-11-15",
+   "sha256": "d27d29c4365140416474f29f72dfbdc3b1d2f73f6120ced849214eeaafab9220",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/f80f3deb-5742-4fc3-bab9-16e180cfb6c1/resource/8738a30b-cf24-4015-9c36-03bfa3a44568/download/data_2022.csv",
+   "total_cents": 156500800229,
+   "unknown_municipality_cents": -4189406423,
+   "year": 2022
+  },
+  {
+   "benefit": "asumistuki",
+   "bytes": 300765925,
+   "checks": [
+    "yearly, monthly and quarterly rows give the same total",
+    "household-type parts add up to the total",
+    "life-situation parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "elamantilanne": {
+     "Eläkkeensaajaruokakunnat": 2649831078,
+     "Muut ruokakunnat": 14049938446,
+     "Opiskelijaruokakunnat": 68202983581,
+     "Työssä olevat ruokakunnat": 28619169960,
+     "Työttömät ruokakunnat": 54899489666
+    }
+   },
+   "resource_id": "ce012b24-05b2-4301-ac42-1bce5594ff1b",
+   "retrieved_at": "2026-11-15",
+   "sha256": "7211329955fc8f97f29769375dac89baf9d4870ee10467a59124bd88fe81e353",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/f80f3deb-5742-4fc3-bab9-16e180cfb6c1/resource/ce012b24-05b2-4301-ac42-1bce5594ff1b/download/data_2023.csv",
+   "total_cents": 168421412731,
+   "unknown_municipality_cents": -4029996221,
+   "year": 2023
+  },
+  {
+   "benefit": "asumistuki",
+   "bytes": 306162929,
+   "checks": [
+    "yearly, monthly and quarterly rows give the same total",
+    "household-type parts add up to the total",
+    "life-situation parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "elamantilanne": {
+     "Eläkkeensaajaruokakunnat": 2741732471,
+     "Muut ruokakunnat": 16472021440,
+     "Opiskelijaruokakunnat": 62803352508,
+     "Työssä olevat ruokakunnat": 27254804728,
+     "Työttömät ruokakunnat": 58420945898
+    }
+   },
+   "resource_id": "d88904a1-2195-4d67-90eb-01098dd1a0d8",
+   "retrieved_at": "2026-11-15",
+   "sha256": "dce2e63d0d734b5b11dfb97be13f8a23df8181e8d8edc7fdde29da6ad4f138fb",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/f80f3deb-5742-4fc3-bab9-16e180cfb6c1/resource/d88904a1-2195-4d67-90eb-01098dd1a0d8/download/data_2024.csv",
+   "total_cents": 167692857045,
+   "unknown_municipality_cents": -4214454159,
+   "year": 2024
+  },
+  {
+   "benefit": "asumistuki",
+   "bytes": 226222587,
+   "checks": [
+    "yearly, monthly and quarterly rows give the same total",
+    "household-type parts add up to the total",
+    "life-situation parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "elamantilanne": {
+     "Eläkkeensaajaruokakunnat": 2498572101,
+     "Muut ruokakunnat": 13040228620,
+     "Opiskelijaruokakunnat": 29267012872,
+     "Työssä olevat ruokakunnat": 16577665341,
+     "Työttömät ruokakunnat": 61413088341
+    }
+   },
+   "resource_id": "f722f956-7381-4af4-b8a8-161fa63e5e5f",
+   "retrieved_at": "2026-11-15",
+   "sha256": "223f581f918208cced28219a12aca2da5775c142fd99f11d08a8d7d8f59577f0",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/f80f3deb-5742-4fc3-bab9-16e180cfb6c1/resource/f722f956-7381-4af4-b8a8-161fa63e5e5f/download/data_2025.csv",
+   "total_cents": 122796567275,
+   "unknown_municipality_cents": -4238666264,
+   "year": 2025
+  },
+  {
+   "benefit": "opintoraha_ja_asumislisa",
+   "bytes": 112702773,
+   "checks": [
+    "yearly and monthly rows give the same total",
+    "study grant plus housing supplement add up to the total",
+    "school-level parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "etuus": {
+     "Asumislisä": 1245221241,
+     "Opintoraha": 44617157591
+    },
+    "oppilaitosaste": {
+     "Ammatilliset oppilaitokset": 11683177972,
+     "Ammattikorkeakoulut": 16118831326,
+     "Lukiot": 3102287526,
+     "Muut oppilaitokset": 861800385,
+     "Tieto puuttuu": -4096829887,
+     "Ulkomaiset oppilaitokset": 2857057640,
+     "Yliopistot": 15336053870
+    }
+   },
+   "resource_id": "4fce5b8d-e566-40e5-a7cf-3533d5f3c04d",
+   "retrieved_at": "2026-11-15",
+   "sha256": "d54cb84981eec90fd443bf35df322a6a54df87d9a828cc5b972bc928108a25ba",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/6c4d12ce-3aaf-40ea-96c4-4e396a959e95/resource/4fce5b8d-e566-40e5-a7cf-3533d5f3c04d/download/data_2021.csv",
+   "total_cents": 45862378832,
+   "unknown_municipality_cents": 970192174,
+   "year": 2021
+  },
+  {
+   "benefit": "opintoraha_ja_asumislisa",
+   "bytes": 112620875,
+   "checks": [
+    "yearly and monthly rows give the same total",
+    "study grant plus housing supplement add up to the total",
+    "school-level parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "etuus": {
+     "Asumislisä": 1567587561,
+     "Opintoraha": 45457711893
+    },
+    "oppilaitosaste": {
+     "Ammatilliset oppilaitokset": 11010608872,
+     "Ammattikorkeakoulut": 17143041354,
+     "Lukiot": 2974011990,
+     "Muut oppilaitokset": 796470747,
+     "Tieto puuttuu": -4043686626,
+     "Ulkomaiset oppilaitokset": 2654279686,
+     "Yliopistot": 16490573431
+    }
+   },
+   "resource_id": "f4168e88-0103-48d2-bebe-26d5543fa450",
+   "retrieved_at": "2026-11-15",
+   "sha256": "77fa257a95a647faa4896348192507060d07733356a5da576786a286917bc839",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/6c4d12ce-3aaf-40ea-96c4-4e396a959e95/resource/f4168e88-0103-48d2-bebe-26d5543fa450/download/data_2022.csv",
+   "total_cents": 47025299454,
+   "unknown_municipality_cents": 916682930,
+   "year": 2022
+  },
+  {
+   "benefit": "opintoraha_ja_asumislisa",
+   "bytes": 112110956,
+   "checks": [
+    "yearly and monthly rows give the same total",
+    "study grant plus housing supplement add up to the total",
+    "school-level parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "etuus": {
+     "Asumislisä": 1562415349,
+     "Opintoraha": 48100265690
+    },
+    "oppilaitosaste": {
+     "Ammatilliset oppilaitokset": 10918288809,
+     "Ammattikorkeakoulut": 18874359661,
+     "Lukiot": 2838719089,
+     "Muut oppilaitokset": 759502039,
+     "Tieto puuttuu": -4316098713,
+     "Ulkomaiset oppilaitokset": 2523943152,
+     "Yliopistot": 18063967002
+    }
+   },
+   "resource_id": "fb2d2ec7-b370-47e3-bbb6-26f2c1cbde6d",
+   "retrieved_at": "2026-11-15",
+   "sha256": "ebe814f2e2ad92fdd6081a3be5956a250839b523e86c6f71aaf54e5bad6ecafd",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/6c4d12ce-3aaf-40ea-96c4-4e396a959e95/resource/fb2d2ec7-b370-47e3-bbb6-26f2c1cbde6d/download/data_2023.csv",
+   "total_cents": 49662681039,
+   "unknown_municipality_cents": 907129409,
+   "year": 2023
+  },
+  {
+   "benefit": "opintoraha_ja_asumislisa",
+   "bytes": 112761094,
+   "checks": [
+    "yearly and monthly rows give the same total",
+    "study grant plus housing supplement add up to the total",
+    "school-level parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "etuus": {
+     "Asumislisä": 1491942385,
+     "Opintoraha": 50275529431
+    },
+    "oppilaitosaste": {
+     "Ammatilliset oppilaitokset": 11116562299,
+     "Ammattikorkeakoulut": 19638816745,
+     "Lukiot": 2843408792,
+     "Muut oppilaitokset": 725336366,
+     "Tieto puuttuu": -3812689627,
+     "Ulkomaiset oppilaitokset": 2371839214,
+     "Yliopistot": 18884198027
+    }
+   },
+   "resource_id": "2a0391f0-6afc-4a16-a1c3-f3d5e716000f",
+   "retrieved_at": "2026-11-15",
+   "sha256": "e7cf0188d031e6bd6ea63ed8e5aca17cdf46586440539f61e06e77a723a5b215",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/6c4d12ce-3aaf-40ea-96c4-4e396a959e95/resource/2a0391f0-6afc-4a16-a1c3-f3d5e716000f/download/data_2024.csv",
+   "total_cents": 51767471816,
+   "unknown_municipality_cents": 902528355,
+   "year": 2024
+  },
+  {
+   "benefit": "opintoraha_ja_asumislisa",
+   "bytes": 87936931,
+   "checks": [
+    "yearly and monthly rows give the same total",
+    "study grant plus housing supplement add up to the total",
+    "school-level parts add up to the total",
+    "no duplicate yearly rows"
+   ],
+   "parts": {
+    "etuus": {
+     "Asumislisä": 16514416386,
+     "Opintoraha": 53193940029
+    },
+    "oppilaitosaste": {
+     "Ammatilliset oppilaitokset": 13646574218,
+     "Ammattikorkeakoulut": 26198631786,
+     "Lukiot": 3672841524,
+     "Muut oppilaitokset": 826086608,
+     "Tieto puuttuu": -3257674040,
+     "Ulkomaiset oppilaitokset": 2257356882,
+     "Yliopistot": 26364539437
+    }
+   },
+   "resource_id": "169cfdbe-069e-4409-a714-5293a0def420",
+   "retrieved_at": "2026-11-15",
+   "sha256": "04de7a7f95c676ba09ccef1898840fa81cb65eb8d0023d5fdf9b1a08eb41d4a1",
+   "source_url": "https://avoindata.suomi.fi/data/dataset/6c4d12ce-3aaf-40ea-96c4-4e396a959e95/resource/169cfdbe-069e-4409-a714-5293a0def420/download/data_2025.csv",
+   "total_cents": 69708356415,
+   "unknown_municipality_cents": 7591080093,
+   "year": 2025
+  }
+ ],
+ "schema": 1
+}

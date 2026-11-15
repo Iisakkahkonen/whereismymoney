@@ -120,3 +120,53 @@ def test_opintotuki_stops_on_a_duplicate_yearly_row(tmp_path):
     rows.append(list(rows[0]))
     with pytest.raises(AmbiguousSeries):
         kela.aggregate_opintotuki(write(tmp_path / "o.csv", OPI_COLS, rows), 2024)
+
+
+# --- committed snapshot (CI cannot download the raw files) -------------------
+
+def _entry(**over):
+    e = {"benefit": "asumistuki", "year": 2025, "source_url": "https://example.test/x.csv", "resource_id": "r",
+         "sha256": "0" * 64, "bytes": 1, "retrieved_at": "2026-11-15", "total_cents": 300,
+         "unknown_municipality_cents": 0, "parts": {"elamantilanne": {"a": 100, "b": 200}}, "checks": ["ok"]}
+    e.update(over)
+    return e
+
+
+def _write(tmp_path, entries, schema=kela.SNAPSHOT_SCHEMA):
+    import json
+    p = tmp_path / "kela.json"
+    p.write_text(json.dumps({"schema": schema, "entries": entries}), encoding="utf-8")
+    return p
+
+
+def test_snapshot_round_trips(tmp_path):
+    k = kela.KelaYear(2025, "asumistuki", 300, {"elamantilanne": {"a": 100, "b": 200}}, -5, ["ok"])
+    prov = {"source_url": "u", "resource_id": "r", "sha256": "ab", "bytes": 3, "retrieved_at": "2026-11-15"}
+    p = tmp_path / "s" / "kela.json"
+    kela.save_snapshot({("asumistuki", 2025): (k, prov)}, p)
+    back = kela.load_snapshot(p)[("asumistuki", 2025)]
+    assert back == (k, prov)
+
+
+def test_snapshot_stops_when_parts_do_not_add_up(tmp_path):
+    with pytest.raises(AssertionError):
+        kela.load_snapshot(_write(tmp_path, [_entry(total_cents=301)]))
+
+
+def test_snapshot_stops_on_two_entries_for_one_year(tmp_path):
+    with pytest.raises(AmbiguousSeries):
+        kela.load_snapshot(_write(tmp_path, [_entry(), _entry()]))
+
+
+def test_snapshot_stops_on_unknown_schema(tmp_path):
+    with pytest.raises(ValueError):
+        kela.load_snapshot(_write(tmp_path, [_entry()], schema=99))
+
+
+def test_committed_snapshot_is_valid_and_covers_every_year():
+    # The file CI actually reads. A bad edit or a missing year fails here, before any deploy.
+    from wimm.build import LINKS, YEARS
+    snap = kela.load_snapshot()
+    for l in LINKS:
+        for y in YEARS:
+            assert (l.benefit, y) in snap, f"{l.benefit} {y} missing from snapshots/kela.json"

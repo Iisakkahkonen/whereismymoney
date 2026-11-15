@@ -9,8 +9,11 @@ Money is summed in integer cents to keep the cross-checks exact.
 """
 
 import csv
+import hashlib
+import json
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import AmbiguousSeries
@@ -79,7 +82,7 @@ def aggregate_asumistuki(path: Path, year: int) -> KelaYear:
     by_state: dict[str, int] = defaultdict(int)
     rt_parts = 0
     unknown = 0
-    seen: set[tuple] = set()
+    seen: set[int] = set()
     rt_part_names = {"Yksin asuvat", "Lapsettomat parit", "Lapsiperheet yhteensä", "Muut", "Tieto puuttuu"}
     with open(path, encoding="utf-8-sig", newline="") as f:
         for r in csv.DictReader(f):
@@ -89,9 +92,11 @@ def aggregate_asumistuki(path: Path, year: int) -> KelaYear:
             rt, hm = r["ruokakuntatyyppi"], r["hallintamuoto"]
             if g == "Vuosi":
                 key = (r["kunta_nro"], r["ikaryhma"], rt, hm, r["elamantilanne"])
-                if key in seen:
+                # Keep a hash, not the tuple: millions of keys as strings do not fit in a small machine's memory.
+                # A hash collision can only raise a false alarm (the build stops), never hide a duplicate.
+                if hash(key) in seen:
                     raise AmbiguousSeries(f"{path.name}: duplicate yearly row {key}")
-                seen.add(key)
+                seen.add(hash(key))
             if hm != "Yhteensä":
                 continue
             c = cents(r["maksettu_eur"])
@@ -132,7 +137,7 @@ def aggregate_opintotuki(path: Path, year: int) -> KelaYear:
     by_benefit: dict[str, int] = defaultdict(int)
     by_level: dict[str, int] = defaultdict(int)
     unknown = 0
-    seen: set[tuple] = set()
+    seen: set[int] = set()
     with open(path, encoding="utf-8-sig", newline="") as f:
         for r in csv.DictReader(f):
             g = r["aikatyyppi"]
@@ -142,9 +147,9 @@ def aggregate_opintotuki(path: Path, year: int) -> KelaYear:
                 raise ValueError(f"{path.name}: row for year {r['vuosi']}")
             if g == "Vuosi":
                 key = (r["kunta_nro"], r["ikaryhma"], r["sukupuoli"], r["etuus"], r["oppilaitos_peruste"], r["oppilaitosaste"])
-                if key in seen:
+                if hash(key) in seen:
                     raise AmbiguousSeries(f"{path.name}: duplicate yearly row {key}")
-                seen.add(key)
+                seen.add(hash(key))
             if r["oppilaitos_peruste"] != "Kaikki oppilaitokset":
                 continue
             c = cents(r["maksettu_eur"])
@@ -174,11 +179,73 @@ def aggregate_opintotuki(path: Path, year: int) -> KelaYear:
     return out
 
 
-def load_asumistuki(year: int, cache: Path) -> KelaYear:
-    p = fetch(url(ASUMISTUKI_DATASET, ASUMISTUKI_RESOURCES[year], year), cache / "kela" / f"asumistuki_{year}.csv")
-    return aggregate_asumistuki(p, year)
+# benefit key -> (dataset id, resource ids per year, cache file prefix, aggregate function)
+SOURCES = {
+    "asumistuki": (ASUMISTUKI_DATASET, ASUMISTUKI_RESOURCES, "asumistuki", aggregate_asumistuki),
+    "opintoraha_ja_asumislisa": (OPINTOTUKI_DATASET, OPINTOTUKI_RESOURCES, "opintotuki", aggregate_opintotuki),
+}
+
+# The raw files are 1.5 GB in total, and avoindata.suomi.fi answers 403 to the
+# GitHub Actions runners (seen 2026-11-15; the same URL works from a home
+# connection). So CI does not download them. The pipeline downloads and
+# aggregates on a normal connection (`--kela download`), and the checked
+# aggregates are committed here together with where they came from. The build
+# reads this file and still reconciles every figure against the Treasury.
+SNAPSHOT = Path(__file__).resolve().parent.parent / "snapshots" / "kela.json"
+SNAPSHOT_SCHEMA = 1
 
 
-def load_opintotuki(year: int, cache: Path) -> KelaYear:
-    p = fetch(url(OPINTOTUKI_DATASET, OPINTOTUKI_RESOURCES[year], year), cache / "kela" / f"opintotuki_{year}.csv")
-    return aggregate_opintotuki(p, year)
+def sha256_of(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1 << 20):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download_and_aggregate(benefit: str, year: int, cache: Path) -> tuple[KelaYear, dict]:
+    """Download one raw file (cached), aggregate it, and describe where it came from."""
+    dataset, resources, prefix, aggregate = SOURCES[benefit]
+    u = url(dataset, resources[year], year)
+    p = fetch(u, cache / "kela" / f"{prefix}_{year}.csv")
+    prov = {
+        "source_url": u,
+        "resource_id": resources[year],
+        "sha256": sha256_of(p),
+        "bytes": p.stat().st_size,
+        "retrieved_at": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).date().isoformat(),
+    }
+    return aggregate(p, year), prov
+
+
+def save_snapshot(entries: dict[tuple[str, int], tuple[KelaYear, dict]], path: Path = SNAPSHOT) -> None:
+    rows = []
+    for (benefit, year), (k, prov) in sorted(entries.items()):
+        rows.append({
+            "benefit": benefit, "year": year, **prov,
+            "total_cents": k.total_cents,
+            "unknown_municipality_cents": k.unknown_municipality_cents,
+            "parts": k.parts, "checks": k.checks,
+        })
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema": SNAPSHOT_SCHEMA, "entries": rows}, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+                    encoding="utf-8")
+
+
+def load_snapshot(path: Path = SNAPSHOT) -> dict[tuple[str, int], tuple[KelaYear, dict]]:
+    """Read the committed aggregates. Every part dimension must still add up to the total,
+    so a hand-edited or damaged file fails here instead of reaching the site."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("schema") != SNAPSHOT_SCHEMA:
+        raise ValueError(f"{path.name}: schema {data.get('schema')}, expected {SNAPSHOT_SCHEMA}")
+    out: dict[tuple[str, int], tuple[KelaYear, dict]] = {}
+    for e in data["entries"]:
+        key = (e["benefit"], e["year"])
+        if key in out:
+            raise AmbiguousSeries(f"{path.name}: two snapshot entries for {key}")
+        k = KelaYear(e["year"], e["benefit"], e["total_cents"], e["parts"], e["unknown_municipality_cents"], e["checks"])
+        for dim, cats in k.parts.items():
+            _require_equal(f"snapshot {key} {dim} parts vs total", sum(cats.values()), k.total_cents)
+        prov = {x: e[x] for x in ("source_url", "resource_id", "sha256", "bytes", "retrieved_at")}
+        out[key] = (k, prov)
+    return out
