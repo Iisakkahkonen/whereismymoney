@@ -42,7 +42,7 @@ cd .. && python -m playwright install chromium && python -m pytest e2e
 
 ## Next steps
 1. Get a review of the Phase 1 data logic (coverage rule, reconciliation guard, Kela snapshot) from the reviewer before building on it.
-2. Pick the first deepening source (needs the owner's answer). The owner was asked "Start with wellbeing county and municipal transfers?" and has not answered. The case for it: the largest block (item 28.89.31 alone is about 24.6 bn in 2023 and later). Not checked yet: the Treasury's Kuntatalous API (same portal, https://avoindata.tutkihallintoa.fi/apis). Other candidates: pensions (item 28.50.15, 5.5 bn) and other Kela benefits, STEA grants (source confirmed), supplier invoices (Phase 5).
+2. First deepening source: the owner chose wellbeing-county transfers, then declined to let the builder download the ministry's per-county Excel files, so that recon is **parked** (findings and links in `data-inventory.md` section 10: the Treasury's Kuntatalous API exposes only taxonomy files; the matched per-county allocation exists as Excel on vm.fi/rahoituslaskelmat, contents unread). **Ask the owner which source to take next.** Candidates: STEA grants (confirmed source, 2024 reconciles to item 339050, business IDs from 2021; smallest and lowest risk, proves named-recipient drill-down), resume the county recon if the owner allows the downloads, other Kela benefits (each needs its own verified rollups), pensions (no verified detailed source yet).
 3. For any new source, follow the rules below: confirm URL, fields and filters against the live source, add a pipeline test and a Sources row, only then call it done. If its host blocks CI, use the same committed-snapshot pattern as Kela.
 
 ## Rules to keep
