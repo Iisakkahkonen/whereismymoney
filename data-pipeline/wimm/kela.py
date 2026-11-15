@@ -204,11 +204,21 @@ def sha256_of(path: Path) -> str:
     return h.hexdigest()
 
 
-def download_and_aggregate(benefit: str, year: int, cache: Path) -> tuple[KelaYear, dict]:
-    """Download one raw file (cached), aggregate it, and describe where it came from."""
-    dataset, resources, prefix, aggregate = SOURCES[benefit]
+def raw_path(benefit: str, year: int, cache: Path) -> Path:
+    """Where a raw file is kept. The resource id is in the name, so a changed resource can never
+    be mistaken for the old file."""
+    _dataset, resources, prefix, _agg = SOURCES[benefit]
+    return cache / "kela" / f"{prefix}_{year}_{resources[year][:8]}.csv"
+
+
+def download_and_aggregate(benefit: str, year: int, cache: Path, refresh: bool = True) -> tuple[KelaYear, dict]:
+    """Fetch one raw file, aggregate it, and describe where it came from.
+
+    refresh=True downloads it again. refresh=False re-aggregates the copy on disk (offline), and
+    then retrieved_at is that file's date on disk."""
+    dataset, resources, _prefix, aggregate = SOURCES[benefit]
     u = url(dataset, resources[year], year)
-    p = fetch(u, cache / "kela" / f"{prefix}_{year}.csv")
+    p = fetch(u, raw_path(benefit, year, cache), refresh=refresh)
     prov = {
         "source_url": u,
         "resource_id": resources[year],

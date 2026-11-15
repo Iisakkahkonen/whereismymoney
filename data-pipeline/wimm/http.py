@@ -1,7 +1,8 @@
 """Download helper with an on-disk cache.
 
-The Kela files are 100 to 300 MB each, so downloads are cached by file name
-and written atomically. CI keeps the cache directory between runs.
+Downloads are written atomically. By default every call fetches from the source;
+reusing files already on disk is an explicit choice (refresh=False), used for offline
+work and for re-aggregating the 100 to 300 MB Kela files without downloading them again.
 """
 
 import time
@@ -12,9 +13,13 @@ import requests
 USER_AGENT = "whereismymoney-pipeline (open source; https://github.com/Iisakkahkonen/whereismymoney)"
 
 
-def fetch(url: str, dest: Path, *, retries: int = 4, timeout: tuple[int, int] = (30, 90)) -> Path:
-    """Download url to dest unless it is already cached. Returns dest."""
-    if dest.exists() and dest.stat().st_size > 0:
+def fetch(url: str, dest: Path, *, refresh: bool = True, retries: int = 4, timeout: tuple[int, int] = (30, 90)) -> Path:
+    """Download url to dest and return dest.
+
+    refresh=True (the default) always asks the source, so a new run can never silently reuse old
+    bytes. refresh=False is the explicit offline mode: an existing non-empty file is returned as is,
+    with no request and no check that it is current. A failed refresh leaves the old file untouched."""
+    if not refresh and dest.exists() and dest.stat().st_size > 0:
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_suffix(dest.suffix + ".part")

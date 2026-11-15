@@ -36,17 +36,11 @@ jobs:
       - name: Pipeline tests
         run: python -m pytest data-pipeline -q
 
-      # Treasury data is fetched here. Kela data is NOT: avoindata.suomi.fi answers
-      # 403 to these runners, so the build reads the committed, checked aggregates in
+      # Treasury data is fetched fresh on every run (there is deliberately no download cache, so a
+      # scheduled run can never reuse old bytes). Kela data is NOT downloaded: avoindata.suomi.fi
+      # answers 403 to these runners, so the build reads the committed, checked aggregates in
       # data-pipeline/snapshots/kela.json. Refresh them from a normal connection with
       #   python -m wimm.build --kela download
-      - name: Restore download cache
-        uses: actions/cache@v4
-        with:
-          path: data-pipeline/cache
-          key: pipeline-cache-${{ hashFiles('data-pipeline/wimm/treasury.py') }}
-          restore-keys: pipeline-cache-
-
       - name: Build data (fetches Treasury, reads Kela snapshot, runs all data checks)
         working-directory: data-pipeline
         run: python -m wimm.build --cache cache --out ../web/public/data

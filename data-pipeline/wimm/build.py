@@ -106,12 +106,14 @@ def kela_inputs(mode: str, cache: Path, years: list[int], snapshot: Path) -> dic
     """Kela figures per (benefit, year), with where each came from.
 
     "snapshot" reads the committed aggregates (what CI does: the raw files are
-    1.5 GB and the host refuses the CI runners). "download" fetches the raw
-    files, re-aggregates, and rewrites the snapshot for the years asked for."""
+    1.5 GB and the host refuses the CI runners). "download" downloads the raw
+    files again, re-aggregates, and rewrites the snapshot for the years asked for.
+    "recompute" does the same from the copies already on disk, without any request
+    (offline); the snapshot then records those files' own dates."""
     wanted = [(l.benefit, y) for l in LINKS for y in years]
-    if mode == "download":
+    if mode in ("download", "recompute"):
         stored = kela.load_snapshot(snapshot) if snapshot.exists() else {}
-        stored.update({key: kela.download_and_aggregate(*key, cache) for key in wanted})
+        stored.update({key: kela.download_and_aggregate(*key, cache, refresh=(mode == "download")) for key in wanted})
         kela.save_snapshot(stored, snapshot)
         return {key: stored[key] for key in wanted}
     stored = kela.load_snapshot(snapshot)
@@ -121,10 +123,17 @@ def kela_inputs(mode: str, cache: Path, years: list[int], snapshot: Path) -> dic
     return {key: stored[key] for key in wanted}
 
 
-def build(cache: Path, out: Path, years: list[int], kela_mode: str = "snapshot", snapshot: Path = kela.SNAPSHOT) -> dict:
+def build(cache: Path, out: Path, years: list[int], kela_mode: str = "snapshot", snapshot: Path = kela.SNAPSHOT,
+          use_cache: bool = False) -> dict:
+    """use_cache=True reuses Treasury files already on disk (offline work). The default asks the
+    Treasury API for every file, and the manifest says which of the two happened."""
     out.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
-    items = [it for y in years for it in treasury.load_year(y, cache, notes)]
+    items = [it for y in years for it in treasury.load_year(y, cache, notes, refresh=not use_cache)]
+    notes.append(
+        "Treasury data was reused from files on disk (offline mode); it may not be current."
+        if use_cache else "Treasury data was fetched from the Treasury API during this build."
+    )
     kela_data = kela_inputs(kela_mode, cache, years, snapshot)
     kela_years = {key: k for key, (k, _) in kela_data.items()}
     kela_files = [{"benefit": b, "year": y, **prov} for (b, y), (_, prov) in sorted(kela_data.items())]
@@ -211,10 +220,14 @@ def main() -> None:
     ap.add_argument("--cache", type=Path, default=Path("cache"))
     ap.add_argument("--out", type=Path, default=Path("../web/public/data"))
     ap.add_argument("--years", type=int, nargs="+", default=YEARS)
-    ap.add_argument("--kela", choices=["snapshot", "download"], default="snapshot",
-                    help="snapshot: use the committed aggregates (CI). download: fetch the raw Kela files and refresh them.")
+    ap.add_argument("--kela", choices=["snapshot", "download", "recompute"], default="snapshot",
+                    help="snapshot: use the committed aggregates (CI). download: download the raw Kela files again "
+                         "and refresh the snapshot. recompute: refresh the snapshot from raw files already on disk (offline).")
+    ap.add_argument("--use-cache", action="store_true",
+                    help="offline mode: reuse Treasury files already in the cache instead of fetching them. "
+                         "The default fetches every file, so a normal run is never silently stale.")
     a = ap.parse_args()
-    m = build(a.cache, a.out, a.years, a.kela)
+    m = build(a.cache, a.out, a.years, a.kela, use_cache=a.use_cache)
     print(f"built {m['counts']} for {m['years']} at {m['generated_at']}")
 
 

@@ -53,16 +53,16 @@ def to_euro(x: str) -> float:
     return float(x) if x else 0.0
 
 
-def list_classes(year: int, cache: Path) -> list[str]:
+def list_classes(year: int, cache: Path, refresh: bool = True) -> list[str]:
     """Main class numbers valid in a year, from the API's own structure table."""
-    path = fetch(f"{BASE}/paaluokat", cache / "treasury" / "paaluokat.csv")
+    path = fetch(f"{BASE}/paaluokat", cache / "treasury" / "paaluokat.csv", refresh=refresh)
     with open(path, encoding="utf-8-sig", newline="") as f:
         return sorted({r["Tunnus"] for r in csv.DictReader(f) if r["Vuosi"] == str(year)})
 
 
-def fetch_events(paaluokka: str, year: int, cache: Path) -> Path:
+def fetch_events(paaluokka: str, year: int, cache: Path, refresh: bool = True) -> Path:
     url = f"{BASE}/budjettitaloudentapahtumat?paaluokka={paaluokka}&yearFrom={year}&yearTo={year}"
-    return fetch(url, cache / "treasury" / f"events_{year}_{paaluokka}.csv")
+    return fetch(url, cache / "treasury" / f"events_{year}_{paaluokka}.csv", refresh=refresh)
 
 
 MONEY_COLUMNS = (
@@ -125,10 +125,10 @@ def aggregate(path: Path, year: int, notes: list[str] | None = None) -> list[Bud
     return items
 
 
-def load_year(year: int, cache: Path, notes: list[str] | None = None) -> list[BudgetItem]:
+def load_year(year: int, cache: Path, notes: list[str] | None = None, refresh: bool = True) -> list[BudgetItem]:
     items: list[BudgetItem] = []
-    for pl in list_classes(year, cache):
-        items += aggregate(fetch_events(pl, year, cache), year, notes)
+    for pl in list_classes(year, cache, refresh):
+        items += aggregate(fetch_events(pl, year, cache, refresh), year, notes)
     seen: set[tuple[int, str]] = set()
     for it in items:
         k = (it.year, it.momentti)
