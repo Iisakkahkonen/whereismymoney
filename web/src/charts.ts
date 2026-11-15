@@ -61,9 +61,13 @@ export function treemap(el: HTMLElement, items: Item[], onOpen: (momentti: strin
         label: { show: true, formatter: "{b}", overflow: "truncate", color: "#10151a" },
         upperLabel: { show: true, height: 22, color: "#ffffff" },
         itemStyle: { borderColor: css("--surface"), borderWidth: 1, gapWidth: 1 },
-        // Group headers stay neutral so that blue (traced) is the only colour with meaning.
+        color: ["#56606b"], // groups too small for a header show this fill, not a default palette colour
+        // Level 0 is ECharts' hidden root, level 1 the main-class groups, level 2 the budget items.
+        // A group header is painted with the group's border colour: neutral grey keeps the headers
+        // quiet and leaves blue (traced) as the only colour with meaning.
         levels: [
-          { itemStyle: { color: "#56606b", borderColor: css("--surface"), borderWidth: 2, gapWidth: 3 } },
+          { upperLabel: { show: false }, itemStyle: { borderWidth: 0, gapWidth: 2 } },
+          { itemStyle: { borderColor: "#56606b", borderWidth: 2, gapWidth: 2 }, upperLabel: { show: true, height: 22, color: "#ffffff" } },
           { itemStyle: { borderColor: css("--surface"), borderWidth: 1, gapWidth: 1 } },
         ],
         data: [...groups.values()],

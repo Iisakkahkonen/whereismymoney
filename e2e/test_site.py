@@ -128,7 +128,7 @@ def test_year_selector_changes_the_headline(page, manifest):
         pytest.skip("needs at least two years of data")
     before = page.locator("#total-spent").inner_text()
     page.select_option("#year", str(years[0]))
-    page.wait_for_function("document.querySelector('.hero h2').textContent.includes('%d')" % years[0])
+    page.wait_for_function("document.querySelector('.hero h2')?.textContent.includes('%d')" % years[0])
     assert page.locator("#total-spent").inner_text() != before
     expect(page.locator("#year")).to_have_value(str(years[0]))
 
@@ -145,6 +145,14 @@ def test_sources_page_credits_kela(page):
     page.wait_for_selector("body[data-ready='sources']")
     expect(page.locator("main")).to_contain_text("Source: Kela (Kelasto), licensed CC BY 4.0.")
     expect(page.locator("main")).to_contain_text("What is not covered")
+
+
+def test_sources_page_shows_every_kela_treasury_gap(page, manifest):
+    page.get_by_role("link", name="Sources and method").click()
+    page.wait_for_selector("body[data-ready='sources']")
+    rows = page.locator("#reconciliation tbody tr")
+    expect(rows).to_have_count(len(manifest["reconciliation"]))
+    expect(page.locator("main")).to_contain_text("A break in the series in 2023")
 
 
 def test_no_horizontal_scroll_on_a_phone(browser, base_url):

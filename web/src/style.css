@@ -78,3 +78,8 @@ button.lang[aria-pressed="true"] { background: var(--accent); color: #fff; borde
 .chart.tall { height: 520px; }
 @media (max-width: 600px) { .chart.tall { height: 420px; } .big { font-size: 1.8rem; } }
 .foot { padding-bottom: 2rem; font-size: 0.85rem; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; }

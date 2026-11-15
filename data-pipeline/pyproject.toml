@@ -13,3 +13,4 @@ packages = ["wimm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # so `pytest data-pipeline` works from the repository root, as CI runs it

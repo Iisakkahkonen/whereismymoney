@@ -4,6 +4,7 @@ export interface Manifest {
   generated_at: string;
   years: number[];
   reconciliation_tolerance: number;
+  reconciliation: { year: number; benefit: string; treasury_eur: number; kela_eur: number; difference: number }[];
   benefits: { key: string; momentti: string; name_fi: string; name_en: string; source_url: string }[];
   sources: { id: string; name: string; url: string; licence: string; attribution?: string }[];
 }

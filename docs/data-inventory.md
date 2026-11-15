@@ -57,6 +57,8 @@ Small fixtures from the live sources are in `data-pipeline/samples/`. The rollup
   | Asumistuki | 331054 | €1,696,100,000 | €1,676,928,570 | +1.1% |
   | Opintoraha ja asumislisä | 297055 | €515,503,552 | €517,674,718 | −0.4% |
 
+  Phase 1 measured every year, 2021 to 2025 (Kela vs Treasury): asumistuki −1.2%, +0.4%, **−3.4%**, −1.1%, +1.3%; opintoraha ja asumislisä +0.6%, +0.5%, +0.5%, +0.4%, +0.3%. The housing allowance gap is larger and less stable than the 2024 figure suggested, so the pipeline guard is 5% (a wrong filter is off by 7 to 36 times) and every gap is published on the sources page.
+
   Close but not equal. Likely causes (not verified): payment timing between ledger and Kela's statistics, and Kela statistics counting only some payment types. The reconciliation test in the pipeline needs a tolerance and a written reason, not a silent pass. Note momentti 331054 has no month 12 rows in 2024 and 297055 only has months 1, 3, 5, 7, 8, 10, 12.
 - Licence: the avoindata.fi record for the Treasury budget data says CC BY 4.0. The licence of the API itself was not found on the portal pages. Confirm before publishing derived data.
 - Fixtures: `data-pipeline/samples/treasury_331054_asumistuki_2024.csv`, `treasury_297055_opintoraha_ja_asumislisa_2024.csv`.

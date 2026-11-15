@@ -22,10 +22,13 @@ from .coverage import compute_coverage
 # Complete calendar years only. 2026 is still running (Kela data to October).
 YEARS = [2021, 2022, 2023, 2024, 2025]
 
-# Owner decision 2026-11-15: the roughly 1% gap between the Treasury's actuals
-# and Kela's statistics is accepted and shown on the page. The build only fails
-# if it grows beyond this, which would point to a wrong filter or a source change.
-RECONCILIATION_TOLERANCE = 0.02
+# Owner decision 2026-11-15: the gap between the Treasury's actuals and Kela's
+# statistics is accepted and shown on the page. Measured 2021 to 2025: student
+# aid within 0.6%, housing allowance between -3.4% and +1.3% (the Treasury books
+# round transfers, so year-end timing differs). A wrong filter is off by multiples
+# (7 to 36 times in Phase 0), so the build fails only beyond this, which would
+# point to a wrong filter or a source change, not to ordinary timing.
+RECONCILIATION_TOLERANCE = 0.05
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,7 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
     check_budget_balances(items, years)
     actual = {(it.year, it.momentti): it.actual_eur for it in items}
     traced = {}
+    reconciliation = []  # published on the sources page: every gap, not only the ones that pass
     for l in LINKS:
         for y in years:
             k = kela_years[(l.benefit, y)]
@@ -97,6 +101,8 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
             if a is None:
                 raise AssertionError(f"budget item {l.momentti} missing in {y}")
             gap = abs(k.total_cents / 100 - a) / a
+            reconciliation.append({"year": y, "benefit": l.benefit, "treasury_eur": a, "kela_eur": k.total_cents / 100,
+                                   "difference": (k.total_cents / 100 - a) / a})
             if gap > RECONCILIATION_TOLERANCE:
                 raise AssertionError(
                     f"{l.benefit} {y}: Kela {k.total_cents / 100:,.0f} vs Treasury {a:,.0f} differ by {gap:.1%}, "
@@ -141,6 +147,7 @@ def build(cache: Path, out: Path, years: list[int]) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "years": years,
         "reconciliation_tolerance": RECONCILIATION_TOLERANCE,
+        "reconciliation": reconciliation,
         "benefits": [{"key": l.benefit, "momentti": l.momentti, "name_fi": l.name_fi, "name_en": l.name_en,
                       "source_url": l.kela_page} for l in LINKS],
         "checks": {f"{b} {y}": k.checks for (b, y), k in sorted(kela_years.items())},

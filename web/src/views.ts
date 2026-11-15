@@ -194,8 +194,36 @@ export function sourcesView(root: HTMLElement, ctx: Ctx): void {
     ),
     h("section", { class: "card" }, h("h2", {}, t("sources.coverage.title")), h("p", {}, t("sources.coverage.text"))),
     h("section", { class: "card" }, h("h2", {}, t("sources.gaps.title")), h("p", {}, t("sources.gaps.text"))),
-    h("section", { class: "card" }, h("h2", {}, t("sources.diff.title")), h("p", {}, t("sources.diff.text"))),
+    h("section", { class: "card" }, h("h2", {}, t("sources.break.title")), h("p", {}, t("sources.break.text"))),
+    h(
+      "section",
+      { class: "card" },
+      h("h2", {}, t("sources.diff.title")),
+      h("p", {}, t("sources.diff.text", { limit: pct(ctx.manifest.reconciliation_tolerance, 0) })),
+      reconciliationTable(ctx.manifest),
+    ),
     h("p", { class: "muted" }, `${t("sources.generated")}: ${ctx.manifest.generated_at}`),
   );
   document.title = `${t("sources.title")} · ${t("app.title")}`;
+}
+
+function reconciliationTable(m: Manifest): HTMLElement {
+  const names = new Map(m.benefits.map((b) => [b.key, lang() === "fi" ? b.name_fi : b.name_en]));
+  const signed = (x: number) => (x > 0 ? "+" : x < 0 ? "−" : "") + pct(Math.abs(x));
+  return h(
+    "div",
+    { class: "table-wrap" },
+    h(
+      "table",
+      { id: "reconciliation" },
+      h("thead", {}, h("tr", {}, ...(["year", "benefit", "treasury", "kela", "gap"] as const).map((c) => h("th", { scope: "col" }, t(`sources.diff.${c}` as never))))),
+      h(
+        "tbody",
+        {},
+        ...m.reconciliation.map((r) =>
+          h("tr", {}, h("td", {}, String(r.year)), h("td", {}, names.get(r.benefit) ?? r.benefit), h("td", {}, eur(r.treasury_eur)), h("td", {}, eur(r.kela_eur)), h("td", {}, signed(r.difference))),
+        ),
+      ),
+    ),
+  );
 }
